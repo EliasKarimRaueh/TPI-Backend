@@ -4,6 +4,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import lombok.Data;
 
 @Entity // Marca esta clase como una entidad que se mapeará a una tabla en la BD
@@ -14,7 +16,9 @@ public class Ruta {
     @GeneratedValue(strategy = GenerationType.IDENTITY) // Indica que el ID será autogenerado por la base de datos
     private Long id;
 
-    private Long solicitudId; // ID de la solicitud asociada
+    @ManyToOne
+    @JoinColumn(name = "solicitud_id") // Así se llamará la columna en la BD
+    private Solicitud solicitud; // Solicitud asociada a la ruta
 
     private int cantidadTramos; // Cantidad total de tramos en la ruta
 

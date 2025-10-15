@@ -4,6 +4,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import lombok.Data;
 import java.time.LocalDateTime;
 
@@ -31,5 +33,7 @@ public class Tramo {
 
     private LocalDateTime fechaHoraFin; // Fecha y hora de finalización del tramo
 
-    private Long camionId; // ID del camión asignado al tramo
+    @ManyToOne
+    @JoinColumn(name = "camion_id") // Así se llamará la columna en la BD
+    private CamionReference camion; // Referencia al camión asignado al tramo
 }

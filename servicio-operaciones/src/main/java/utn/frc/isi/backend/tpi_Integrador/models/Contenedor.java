@@ -4,6 +4,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import lombok.Data;
 
 @Entity // Marca esta clase como una entidad que se mapeará a una tabla en la BD
@@ -20,5 +22,7 @@ public class Contenedor {
 
     private String estado; // Estado del contenedor (ej: EN_ORIGEN, EN_VIAJE, EN_DEPOSITO, ENTREGADO)
 
-    private Long clienteId; // ID del cliente asociado al contenedor
+    @ManyToOne
+    @JoinColumn(name = "cliente_id") // Así se llamará la columna en la BD
+    private Cliente cliente; // Cliente asociado al contenedor
 }

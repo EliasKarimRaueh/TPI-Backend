@@ -8,15 +8,14 @@ import lombok.Data;
 
 @Entity // Marca esta clase como una entidad que se mapeará a una tabla en la BD
 @Data   // Genera automáticamente getters, setters, toString, etc.
-public class Tarifa {
+public class CamionReference {
 
     @Id // Define el campo 'id' como la clave primaria de la tabla
     @GeneratedValue(strategy = GenerationType.IDENTITY) // Indica que el ID será autogenerado por la base de datos
     private Long id;
 
-    private String tipo; // Tipo de tarifa (ej: "CostoPorKmCamionGrande", "EstadiaDiariaDeposito")
+    private String dominio; // Patente o identificador único del camión 
 
-    private double valor; // Valor monetario de la tarifa
-
-    private String descripcion; // Descripción detallada de la tarifa
+    // Esta es una referencia simplificada al camión del servicio-flota
+    // En un escenario real de microservicios, esto se manejaría de forma diferente
 }
