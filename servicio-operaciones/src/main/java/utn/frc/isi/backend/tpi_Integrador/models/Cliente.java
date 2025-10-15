@@ -14,11 +14,13 @@ public class Cliente {
     @GeneratedValue(strategy = GenerationType.IDENTITY) // Indica que el ID será autogenerado por la base de datos
     private Long id;
 
-    private String nombre; // Nombre del cliente
+    private String nombre; // Nombre completo del cliente (datos personales y de contacto)
 
-    private String apellido; // Apellido del cliente
+    private String email; // Dirección de correo electrónico (datos personales y de contacto)
 
-    private String telefono; // Número de teléfono de contacto
+    private String telefono; // Número de teléfono de contacto (datos personales y de contacto)
 
-    private String email; // Dirección de correo electrónico
+    private String direccion; // Dirección física del cliente
+
+    private String cuit; // CUIT del cliente para facturación
 }

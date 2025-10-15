@@ -16,6 +16,10 @@ public class Contenedor {
     @GeneratedValue(strategy = GenerationType.IDENTITY) // Indica que el ID será autogenerado por la base de datos
     private Long id;
 
+    private String numero; // Número identificador único del contenedor
+
+    private String tipo; // Tipo de contenedor (ej: STANDARD, REFRIGERADO, etc.)
+
     private double peso; // Peso del contenedor en kilogramos
 
     private double volumen; // Volumen del contenedor en metros cúbicos

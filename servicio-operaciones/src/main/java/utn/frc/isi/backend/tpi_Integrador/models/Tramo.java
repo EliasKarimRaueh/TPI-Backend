@@ -17,23 +17,19 @@ public class Tramo {
     @GeneratedValue(strategy = GenerationType.IDENTITY) // Indica que el ID será autogenerado por la base de datos
     private Long id;
 
-    private String origen; // Dirección textual o ID de depósito de origen
+    private String puntoInicio; // Punto de inicio del tramo
 
-    private String destino; // Dirección textual o ID de depósito de destino
+    private String puntoFin; // Punto de finalización del tramo
 
-    private String tipo; // Tipo de tramo (ej: ORIGEN_DEPOSITO, DEPOSITO_DESTINO)
+    private double distanciaKm; // Distancia del tramo en kilómetros
 
-    private String estado; // Estado del tramo (ej: ESTIMADO, ASIGNADO, INICIADO, FINALIZADO)
-
-    private double costoAproximado; // Costo aproximado del tramo
-
-    private double costoReal; // Costo real del tramo
-
-    private LocalDateTime fechaHoraInicio; // Fecha y hora de inicio del tramo
-
-    private LocalDateTime fechaHoraFin; // Fecha y hora de finalización del tramo
+    private int tiempoEstimadoHoras; // Tiempo estimado en horas para el tramo
 
     @ManyToOne
-    @JoinColumn(name = "camion_id") // Así se llamará la columna en la BD
-    private CamionReference camion; // Referencia al camión asignado al tramo
+    @JoinColumn(name = "ruta_id") // Así se llamará la columna en la BD
+    private Ruta ruta; // Ruta a la que pertenece este tramo
+
+    @ManyToOne
+    @JoinColumn(name = "camion_reference_id") // Así se llamará la columna en la BD
+    private CamionReference camionReference; // Referencia al camión asignado al tramo
 }

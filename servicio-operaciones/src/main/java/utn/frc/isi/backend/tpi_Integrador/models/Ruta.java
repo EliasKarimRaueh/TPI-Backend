@@ -16,11 +16,11 @@ public class Ruta {
     @GeneratedValue(strategy = GenerationType.IDENTITY) // Indica que el ID será autogenerado por la base de datos
     private Long id;
 
-    @ManyToOne
-    @JoinColumn(name = "solicitud_id") // Así se llamará la columna en la BD
-    private Solicitud solicitud; // Solicitud asociada a la ruta
+    private String origen; // Punto de origen de la ruta
 
-    private int cantidadTramos; // Cantidad total de tramos en la ruta
+    private String destino; // Punto de destino de la ruta
 
-    private int cantidadDepositos; // Cantidad de depósitos involucrados en la ruta
+    private double distanciaKm; // Distancia total en kilómetros
+
+    private int tiempoEstimadoHoras; // Tiempo estimado en horas para completar la ruta
 }

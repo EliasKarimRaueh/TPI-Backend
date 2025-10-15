@@ -16,6 +16,12 @@ public class Solicitud {
     @GeneratedValue(strategy = GenerationType.IDENTITY) // Indica que el ID será autogenerado por la base de datos
     private Long id;
 
+    private String fechaSolicitud; // Fecha cuando se realizó la solicitud
+
+    private String estado; // Estado de la solicitud (ej: BORRADOR, PROGRAMADA, EN_TRANSITO, ENTREGADA)
+
+    private String observaciones; // Observaciones adicionales de la solicitud
+
     @ManyToOne
     @JoinColumn(name = "contenedor_id") // Así se llamará la columna en la BD
     private Contenedor contenedor; // Contenedor asociado a la solicitud
@@ -24,6 +30,10 @@ public class Solicitud {
     @JoinColumn(name = "cliente_id") // Así se llamará la columna en la BD
     private Cliente cliente; // Cliente asociado a la solicitud
 
+    @ManyToOne
+    @JoinColumn(name = "ruta_id") // Así se llamará la columna en la BD
+    private Ruta ruta; // Ruta asociada a la solicitud
+
     private double costoEstimado; // Costo estimado de la operación
 
     private double tiempoEstimado; // Tiempo estimado en horas
@@ -31,6 +41,4 @@ public class Solicitud {
     private double costoFinal; // Costo final real de la operación
 
     private double tiempoReal; // Tiempo real en horas
-
-    private String estado; // Estado de la solicitud (ej: BORRADOR, PROGRAMADA, EN_TRANSITO, ENTREGADA)
 }
