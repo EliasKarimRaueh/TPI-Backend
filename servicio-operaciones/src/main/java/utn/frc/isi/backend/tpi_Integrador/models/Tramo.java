@@ -32,4 +32,12 @@ public class Tramo {
     @ManyToOne
     @JoinColumn(name = "camion_reference_id") // Así se llamará la columna en la BD
     private CamionReference camionReference; // Referencia al camión asignado al tramo
+
+    @ManyToOne
+    @JoinColumn(name = "deposito_origen_id") // Depósito de origen del tramo (opcional)
+    private DepositoReference depositoOrigen; // Referencia al depósito de origen
+
+    @ManyToOne
+    @JoinColumn(name = "deposito_destino_id") // Depósito de destino del tramo (opcional)
+    private DepositoReference depositoDestino; // Referencia al depósito de destino
 }
