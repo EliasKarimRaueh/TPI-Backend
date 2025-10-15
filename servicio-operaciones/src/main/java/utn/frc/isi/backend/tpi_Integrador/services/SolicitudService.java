@@ -32,6 +32,15 @@ public class SolicitudService {
         return solicitudRepository.save(solicitud);
     }
 
+    public Solicitud actualizarSolicitud(Long id, Solicitud solicitud) {
+        // Verificar si la solicitud existe
+        if (solicitudRepository.existsById(id)) {
+            solicitud.setId(id); // Asegurar que el ID sea el correcto
+            return solicitudRepository.save(solicitud);
+        }
+        return null; // Retorna null si no existe
+    }
+
     public void eliminarSolicitud(Long id) {
         solicitudRepository.deleteById(id);
     }

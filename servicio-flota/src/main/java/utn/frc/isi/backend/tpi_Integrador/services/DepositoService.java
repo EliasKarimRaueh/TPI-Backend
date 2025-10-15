@@ -32,6 +32,15 @@ public class DepositoService {
         return depositoRepository.save(deposito);
     }
 
+    public Deposito actualizarDeposito(Long id, Deposito deposito) {
+        // Verificar si el depósito existe
+        if (depositoRepository.existsById(id)) {
+            deposito.setId(id); // Asegurar que el ID sea el correcto
+            return depositoRepository.save(deposito);
+        }
+        return null; // Retorna null si no existe
+    }
+
     public void eliminarDeposito(Long id) {
         depositoRepository.deleteById(id);
     }

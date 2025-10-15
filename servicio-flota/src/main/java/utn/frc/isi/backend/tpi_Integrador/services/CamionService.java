@@ -32,6 +32,15 @@ public class CamionService {
         return camionRepository.save(camion);
     }
 
+    public Camion actualizarCamion(Long id, Camion camion) {
+        // Verificar si el camión existe
+        if (camionRepository.existsById(id)) {
+            camion.setId(id); // Asegurar que el ID sea el correcto
+            return camionRepository.save(camion);
+        }
+        return null; // Retorna null si no existe
+    }
+
     public void eliminarCamion(Long id) {
         camionRepository.deleteById(id);
     }

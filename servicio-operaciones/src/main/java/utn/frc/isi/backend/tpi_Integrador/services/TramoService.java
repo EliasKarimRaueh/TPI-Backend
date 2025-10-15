@@ -32,6 +32,15 @@ public class TramoService {
         return tramoRepository.save(tramo);
     }
 
+    public Tramo actualizarTramo(Long id, Tramo tramo) {
+        // Verificar si el tramo existe
+        if (tramoRepository.existsById(id)) {
+            tramo.setId(id); // Asegurar que el ID sea el correcto
+            return tramoRepository.save(tramo);
+        }
+        return null; // Retorna null si no existe
+    }
+
     public void eliminarTramo(Long id) {
         tramoRepository.deleteById(id);
     }

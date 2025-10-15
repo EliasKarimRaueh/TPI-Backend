@@ -32,6 +32,15 @@ public class RutaService {
         return rutaRepository.save(ruta);
     }
 
+    public Ruta actualizarRuta(Long id, Ruta ruta) {
+        // Verificar si la ruta existe
+        if (rutaRepository.existsById(id)) {
+            ruta.setId(id); // Asegurar que el ID sea el correcto
+            return rutaRepository.save(ruta);
+        }
+        return null; // Retorna null si no existe
+    }
+
     public void eliminarRuta(Long id) {
         rutaRepository.deleteById(id);
     }

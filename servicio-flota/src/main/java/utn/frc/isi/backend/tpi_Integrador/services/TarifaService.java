@@ -32,6 +32,15 @@ public class TarifaService {
         return tarifaRepository.save(tarifa);
     }
 
+    public Tarifa actualizarTarifa(Long id, Tarifa tarifa) {
+        // Verificar si la tarifa existe
+        if (tarifaRepository.existsById(id)) {
+            tarifa.setId(id); // Asegurar que el ID sea el correcto
+            return tarifaRepository.save(tarifa);
+        }
+        return null; // Retorna null si no existe
+    }
+
     public void eliminarTarifa(Long id) {
         tarifaRepository.deleteById(id);
     }

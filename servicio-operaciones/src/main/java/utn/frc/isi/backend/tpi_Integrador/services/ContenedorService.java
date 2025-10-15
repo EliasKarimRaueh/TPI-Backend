@@ -32,6 +32,15 @@ public class ContenedorService {
         return contenedorRepository.save(contenedor);
     }
 
+    public Contenedor actualizarContenedor(Long id, Contenedor contenedor) {
+        // Verificar si el contenedor existe
+        if (contenedorRepository.existsById(id)) {
+            contenedor.setId(id); // Asegurar que el ID sea el correcto
+            return contenedorRepository.save(contenedor);
+        }
+        return null; // Retorna null si no existe
+    }
+
     public void eliminarContenedor(Long id) {
         contenedorRepository.deleteById(id);
     }
