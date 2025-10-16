@@ -293,7 +293,7 @@ ContenedorPendienteDTO {
 
 | Método | Endpoint | Rol | Descripción | Entrada | Salida | HTTP | Estado |
 |--------|----------|-----|-------------|---------|--------|------|--------|
-| **POST** | `/solicitudes` | Cliente | **[RF#1]** Registrar nueva solicitud de transporte | `SolicitudCreateDTO` (body) | `SolicitudDTO` | 201, 400 | 🟡 Pendiente (Lógica) |
+| **POST** | `/solicitudes` | Cliente | **[RF#1]** Registrar nueva solicitud de transporte | `SolicitudCreateDTO` (body) | `SolicitudDTO` | 201, 400 | ✅ Implementado |
 | **GET** | `/solicitudes` | Operador | Listar todas las solicitudes | Query: `estado`, `clienteId` | `List<SolicitudDTO>` | 200 | ✅ Implementado |
 | **GET** | `/solicitudes/{id}` | Cliente, Operador | Obtener solicitud por ID | `id: Long` | `SolicitudDTO` | 200, 404 | ✅ Implementado |
 | **GET** | `/solicitudes/{id}/estado` | Cliente | **[RF#2]** Consultar estado del transporte | `id: Long` | `SolicitudEstadoDTO` | 200, 404 | 🟡 Pendiente (Lógica) |

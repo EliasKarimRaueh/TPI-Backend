@@ -1,7 +1,9 @@
 package utn.frc.isi.backend.tpi_Integrador.controllers;
 
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import utn.frc.isi.backend.tpi_Integrador.dtos.SolicitudCreateDTO;
 import utn.frc.isi.backend.tpi_Integrador.models.Solicitud;
 import utn.frc.isi.backend.tpi_Integrador.services.SolicitudService;
 
@@ -30,10 +32,26 @@ public class SolicitudController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    /**
+     * POST /api/solicitudes
+     * Crear nueva solicitud de transporte con orquestación completa
+     * RF#1 del documento de diseño - Endpoint principal del sistema
+     * 
+     * @param solicitudDTO datos de la solicitud (contenedor + cliente)
+     * @return solicitud creada (201) o error (400)
+     */
     @PostMapping
-    public ResponseEntity<Solicitud> crearSolicitud(@RequestBody Solicitud solicitud) {
-        Solicitud nuevaSolicitud = solicitudService.crearSolicitud(solicitud);
-        return ResponseEntity.status(201).body(nuevaSolicitud);
+    public ResponseEntity<Solicitud> crearSolicitud(@Valid @RequestBody SolicitudCreateDTO solicitudDTO) {
+        try {
+            Solicitud nuevaSolicitud = solicitudService.crearNuevaSolicitud(solicitudDTO);
+            return ResponseEntity.status(201).body(nuevaSolicitud);
+        } catch (IllegalArgumentException e) {
+            // Error de validación de datos de entrada
+            return ResponseEntity.badRequest().build();
+        } catch (RuntimeException e) {
+            // Manejo básico de error si el cliente no se encuentra o hay errores de validación
+            return ResponseEntity.badRequest().build();
+        }
     }
 
     @PutMapping("/{id}")
