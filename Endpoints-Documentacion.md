@@ -146,16 +146,18 @@ DepositoDTO {
 
 | Método | Endpoint | Rol | Descripción | Entrada | Salida | HTTP | Estado |
 |--------|----------|-----|-------------|---------|--------|------|--------|
-| **GET** | `/tarifas/actual` | Todos | Obtener tarifa activa vigente | - | `TarifaDTO` | 200, 404 | 🟡 Pendiente (Lógica) |
-| **GET** | `/tarifas` | Operador | Listar todas las tarifas (históricas) | - | `List<TarifaDTO>` | 200 | 🟡 Pendiente (Lógica) |
-| **POST** | `/tarifas` | Operador | Crear nueva tarifa | `TarifaCreateDTO` (body) | `TarifaDTO` | 201, 400 | 🟡 Pendiente (Lógica) |
-| **PUT** | `/tarifas/{id}` | Operador | Actualizar tarifa | `id: Long`, `TarifaUpdateDTO` (body) | `TarifaDTO` | 200, 404, 400 | 🟡 Pendiente (Lógica) |
+| **GET** | `/tarifas/actual` | Todos | Obtener tarifa activa vigente | - | `TarifaDTO` | 200, 404 | ✅ Implementado |
+| **GET** | `/tarifas` | Operador | Listar todas las tarifas (históricas) | - | `List<TarifaDTO>` | 200 | ✅ Implementado |
+| **GET** | `/tarifas/{id}` | Operador | Obtener tarifa por ID | `id: Long` | `TarifaDTO` | 200, 404 | ✅ Implementado |
+| **POST** | `/tarifas` | Operador | Crear nueva tarifa | `TarifaCreateDTO` (body) | `TarifaDTO` | 201, 400 | ✅ Implementado |
+| **PUT** | `/tarifas/{id}` | Operador | Actualizar tarifa | `id: Long`, `TarifaUpdateDTO` (body) | `TarifaDTO` | 200, 404, 400 | ✅ Implementado |
+| **DELETE** | `/tarifas/{id}` | Operador | Eliminar tarifa (solo si no está activa) | `id: Long` | - | 204, 404, 400 | ✅ Implementado |
 
-**Nota**: Este recurso es una alternativa al modelo de costos integrados. Requiere rediseño de la capa de persistencia.
+**✅ IMPLEMENTADO**: Recurso completo con arquitectura de 4 capas, DTOs, validaciones y lógica de negocio para gestión de tarifas activas.
 
-#### DTOs - Tarifas
+#### DTOs - Tarifas *(✅ Implementado)*
 
-**Estado de DTOs**: 🟡 Pendiente (Lógica) - Requiere implementación completa del sistema de tarifas
+**Estado de DTOs**: ✅ Implementado - DTOs completos con validaciones Jakarta Validation
 
 ```java
 // Entrada
