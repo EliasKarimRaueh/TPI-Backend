@@ -46,6 +46,23 @@ public class CamionController {
         }
     }
 
+    /**
+     * GET /api/camiones/disponibles
+     * Obtener camiones disponibles con filtros opcionales
+     * 
+     * @param pesoMinimo capacidad mínima de peso requerida (opcional)
+     * @param volumenMinimo capacidad mínima de volumen requerida (opcional)
+     * @return Lista de camiones que cumplen los criterios
+     */
+    @GetMapping("/disponibles")
+    public ResponseEntity<List<Camion>> obtenerCamionesDisponibles(
+            @RequestParam(required = false) Double pesoMinimo,
+            @RequestParam(required = false) Double volumenMinimo) {
+
+        List<Camion> camionesDisponibles = camionService.buscarDisponibles(pesoMinimo, volumenMinimo);
+        return ResponseEntity.ok(camionesDisponibles);
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminarCamion(@PathVariable Long id) {
         camionService.eliminarCamion(id);

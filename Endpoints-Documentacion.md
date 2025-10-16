@@ -50,7 +50,7 @@ DB Flota (PostgreSQL)          DB Operaciones (PostgreSQL)
 |--------|----------|-----|-------------|---------|--------|------|--------|
 | **GET** | `/camiones` | Operador | Listar todos los camiones | - | `List<CamionDTO>` | 200 | ✅ Implementado |
 | **GET** | `/camiones/{id}` | Operador | Obtener camión por ID | `id: Long` (PathVariable) | `CamionDTO` | 200, 404 | ✅ Implementado |
-| **GET** | `/camiones/disponibles` | Operador | Listar camiones disponibles con filtros | Query: `pesoMinimo: double`, `volumenMinimo: double` | `List<CamionDTO>` | 200 | 🟡 Pendiente (Lógica) |
+| **GET** | `/camiones/disponibles` | Operador | Listar camiones disponibles con filtros | Query: `pesoMinimo: double`, `volumenMinimo: double` | `List<CamionDTO>` | 200 | ✅ Implementado |
 | **POST** | `/camiones` | Operador | Registrar nuevo camión | `CamionCreateDTO` (body) | `CamionDTO` | 201, 400 | ✅ Implementado |
 | **PUT** | `/camiones/{id}` | Operador | Actualizar datos de camión | `id: Long`, `CamionUpdateDTO` (body) | `CamionDTO` | 200, 404, 400 | ✅ Implementado |
 | **PATCH** | `/camiones/{id}/disponibilidad` | Sistema | Cambiar disponibilidad del camión | `id: Long`, `DisponibilidadDTO` (body) | `CamionDTO` | 200, 404 | 🟡 Pendiente (Lógica) |

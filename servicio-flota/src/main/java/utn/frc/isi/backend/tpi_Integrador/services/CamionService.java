@@ -1,5 +1,6 @@
 package utn.frc.isi.backend.tpi_Integrador.services;
 
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import utn.frc.isi.backend.tpi_Integrador.models.Camion;
 import utn.frc.isi.backend.tpi_Integrador.repositories.CamionRepository;
@@ -43,6 +44,34 @@ public class CamionService {
 
     public void eliminarCamion(Long id) {
         camionRepository.deleteById(id);
+    }
+
+    /**
+     * Buscar camiones disponibles con filtros opcionales de capacidad
+     * @param pesoMinimo filtro opcional para capacidad mínima de peso
+     * @param volumenMinimo filtro opcional para capacidad mínima de volumen
+     * @return lista de camiones que cumplen los criterios
+     */
+    public List<Camion> buscarDisponibles(Double pesoMinimo, Double volumenMinimo) {
+        // Crear especificación base: camión debe estar disponible
+        Specification<Camion> spec = (root, query, cb) -> 
+            cb.isTrue(root.get("disponible"));
+
+        // Agregar filtro de peso mínimo si se proporciona
+        if (pesoMinimo != null) {
+            spec = spec.and((root, query, cb) -> 
+                cb.greaterThanOrEqualTo(root.get("capacidadPeso"), pesoMinimo)
+            );
+        }
+
+        // Agregar filtro de volumen mínimo si se proporciona
+        if (volumenMinimo != null) {
+            spec = spec.and((root, query, cb) -> 
+                cb.greaterThanOrEqualTo(root.get("capacidadVolumen"), volumenMinimo)
+            );
+        }
+
+        return camionRepository.findAll(spec);
     }
     
     // Aquí se podrían agregar más métodos de negocio en el futuro,
