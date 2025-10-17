@@ -2,7 +2,10 @@ package utn.frc.isi.backend.tpi_Integrador.repositories;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+import utn.frc.isi.backend.tpi_Integrador.models.Ruta;
 import utn.frc.isi.backend.tpi_Integrador.models.Tramo;
+
+import java.util.List;
 
 @Repository // Buena práctica para indicar que es un componente de persistencia
 public interface TramoRepository extends JpaRepository<Tramo, Long> {
@@ -12,4 +15,10 @@ public interface TramoRepository extends JpaRepository<Tramo, Long> {
     // - findAll()
     // - deleteById()
     // ¡Y muchos más, sin necesidad de implementarlos!
+    
+    /**
+     * Busca todos los tramos de una ruta específica, ordenados por su orden ascendente
+     * Útil para verificar el progreso de una ruta completa
+     */
+    List<Tramo> findByRutaOrderByOrdenAsc(Ruta ruta);
 }

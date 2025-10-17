@@ -74,4 +74,46 @@ public class TramoController {
             return ResponseEntity.badRequest().build();
         }
     }
+    
+    /**
+     * POST /api/tramos/{id}/iniciar
+     * RF#8: Iniciar un tramo de transporte
+     * El transportista marca el inicio del viaje
+     * Actualiza el estado del tramo a "INICIADO" y el contenedor a "EN_VIAJE"
+     * 
+     * @param id ID del tramo a iniciar
+     * @return Tramo actualizado (200) o error (400, 404)
+     */
+    @PostMapping("/{id}/iniciar")
+    public ResponseEntity<Tramo> iniciarTramo(@PathVariable Long id) {
+        try {
+            Tramo tramoIniciado = tramoService.iniciarTramo(id);
+            return ResponseEntity.ok(tramoIniciado);
+        } catch (RuntimeException e) {
+            // Retornar 400 Bad Request en caso de validación fallida
+            return ResponseEntity.badRequest().build();
+        }
+    }
+    
+    /**
+     * POST /api/tramos/{id}/finalizar
+     * RF#8: Finalizar un tramo de transporte
+     * El transportista marca el fin del viaje
+     * Actualiza el estado del tramo a "FINALIZADO"
+     * Si es el último tramo, marca contenedor como "ENTREGADO" y solicitud como "ENTREGADA"
+     * Libera el camión para nuevas asignaciones
+     * 
+     * @param id ID del tramo a finalizar
+     * @return Tramo actualizado (200) o error (400, 404)
+     */
+    @PostMapping("/{id}/finalizar")
+    public ResponseEntity<Tramo> finalizarTramo(@PathVariable Long id) {
+        try {
+            Tramo tramoFinalizado = tramoService.finalizarTramo(id);
+            return ResponseEntity.ok(tramoFinalizado);
+        } catch (RuntimeException e) {
+            // Retornar 400 Bad Request en caso de validación fallida
+            return ResponseEntity.badRequest().build();
+        }
+    }
 }

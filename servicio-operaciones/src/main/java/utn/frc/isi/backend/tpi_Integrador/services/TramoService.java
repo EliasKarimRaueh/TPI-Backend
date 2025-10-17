@@ -8,9 +8,11 @@ import utn.frc.isi.backend.tpi_Integrador.models.Contenedor;
 import utn.frc.isi.backend.tpi_Integrador.models.Solicitud;
 import utn.frc.isi.backend.tpi_Integrador.models.Tramo;
 import utn.frc.isi.backend.tpi_Integrador.repositories.CamionReferenceRepository;
+import utn.frc.isi.backend.tpi_Integrador.repositories.ContenedorRepository;
 import utn.frc.isi.backend.tpi_Integrador.repositories.SolicitudRepository;
 import utn.frc.isi.backend.tpi_Integrador.repositories.TramoRepository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -20,12 +22,14 @@ public class TramoService {
     private final TramoRepository tramoRepository;
     private final CamionReferenceRepository camionReferenceRepository;
     private final SolicitudRepository solicitudRepository;
+    private final ContenedorRepository contenedorRepository;
 
     // Inyección de dependencias a través del constructor (práctica recomendada)
-    public TramoService(TramoRepository tramoRepository, CamionReferenceRepository camionReferenceRepository, SolicitudRepository solicitudRepository) {
+    public TramoService(TramoRepository tramoRepository, CamionReferenceRepository camionReferenceRepository, SolicitudRepository solicitudRepository, ContenedorRepository contenedorRepository) {
         this.tramoRepository = tramoRepository;
         this.camionReferenceRepository = camionReferenceRepository;
         this.solicitudRepository = solicitudRepository;
+        this.contenedorRepository = contenedorRepository;
     }
 
     public List<Tramo> obtenerTodos() {
@@ -133,6 +137,108 @@ public class TramoService {
         camionReferenceRepository.save(camionRef);
         
         // PASO 6: Guardar y retornar el tramo actualizado
+        return tramoRepository.save(tramo);
+    }
+    
+    /**
+     * Inicia un tramo de transporte (RF#8)
+     * El transportista marca el inicio del viaje.
+     * Actualiza el estado del tramo y del contenedor.
+     * 
+     * @param tramoId ID del tramo a iniciar
+     * @return Tramo actualizado
+     */
+    @Transactional
+    public Tramo iniciarTramo(Long tramoId) {
+        // 1. Buscar el tramo
+        Tramo tramo = tramoRepository.findById(tramoId)
+                .orElseThrow(() -> new RuntimeException("Tramo no encontrado con ID: " + tramoId));
+        
+        // 2. Validaciones de negocio
+        if (!"ASIGNADO".equals(tramo.getEstado())) {
+            throw new RuntimeException("El tramo no está en estado 'ASIGNADO'. Estado actual: " + tramo.getEstado());
+        }
+        
+        // 3. Actualizar estado del Tramo
+        tramo.setEstado("INICIADO");
+        tramo.setFechaRealInicio(LocalDateTime.now());
+        
+        // 4. Buscar solicitud asociada para actualizar contenedor
+        Solicitud solicitud = solicitudRepository.findByRuta(tramo.getRuta())
+                .orElseThrow(() -> new RuntimeException("No se encontró solicitud asociada al tramo"));
+        
+        // 5. Actualizar estado del Contenedor
+        Contenedor contenedor = solicitud.getContenedor();
+        contenedor.setEstado("EN_VIAJE");
+        contenedorRepository.save(contenedor);
+        
+        // 6. Actualizar estado de la Solicitud si no está ya en tránsito
+        if (!"EN_TRANSITO".equals(solicitud.getEstado())) {
+            solicitud.setEstado("EN_TRANSITO");
+            solicitudRepository.save(solicitud);
+        }
+        
+        // 7. Guardar y retornar el tramo actualizado
+        return tramoRepository.save(tramo);
+    }
+    
+    /**
+     * Finaliza un tramo de transporte (RF#8)
+     * El transportista marca el fin del viaje.
+     * Actualiza el estado del tramo y, si es el último, del contenedor y solicitud.
+     * 
+     * @param tramoId ID del tramo a finalizar
+     * @return Tramo actualizado
+     */
+    @Transactional
+    public Tramo finalizarTramo(Long tramoId) {
+        // 1. Buscar el tramo
+        Tramo tramo = tramoRepository.findById(tramoId)
+                .orElseThrow(() -> new RuntimeException("Tramo no encontrado con ID: " + tramoId));
+        
+        // 2. Validaciones de negocio
+        if (!"INICIADO".equals(tramo.getEstado())) {
+            throw new RuntimeException("El tramo no está en estado 'INICIADO'. Estado actual: " + tramo.getEstado());
+        }
+        
+        // 3. Actualizar estado del Tramo
+        tramo.setEstado("FINALIZADO");
+        tramo.setFechaRealFin(LocalDateTime.now());
+        
+        // 4. Buscar solicitud asociada
+        Solicitud solicitud = solicitudRepository.findByRuta(tramo.getRuta())
+                .orElseThrow(() -> new RuntimeException("No se encontró solicitud asociada al tramo"));
+        
+        // 5. Verificar si es el último tramo de la ruta
+        List<Tramo> tramosRuta = tramoRepository.findByRutaOrderByOrdenAsc(tramo.getRuta());
+        boolean todosFinalizados = tramosRuta.stream()
+                .allMatch(t -> "FINALIZADO".equals(t.getEstado()) || t.getId().equals(tramoId));
+        
+        // 6. Si todos los tramos están finalizados, actualizar contenedor y solicitud
+        if (todosFinalizados) {
+            Contenedor contenedor = solicitud.getContenedor();
+            contenedor.setEstado("ENTREGADO");
+            contenedorRepository.save(contenedor);
+            
+            solicitud.setEstado("ENTREGADA");
+            solicitudRepository.save(solicitud);
+        } else {
+            // Si no es el último, marcar contenedor como en depósito intermedio
+            Contenedor contenedor = solicitud.getContenedor();
+            if (tramo.getTipo().contains("DEPOSITO")) {
+                contenedor.setEstado("EN_DEPOSITO");
+                contenedorRepository.save(contenedor);
+            }
+        }
+        
+        // 7. Liberar el camión
+        if (tramo.getCamionReference() != null) {
+            CamionReference camion = tramo.getCamionReference();
+            camion.setDisponible(true);
+            camionReferenceRepository.save(camion);
+        }
+        
+        // 8. Guardar y retornar el tramo actualizado
         return tramoRepository.save(tramo);
     }
     

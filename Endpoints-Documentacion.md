@@ -379,8 +379,8 @@ TramoHistorialDTO {
 
 | Método | Endpoint | Rol | Descripción | Entrada | Salida | HTTP | Estado |
 |--------|----------|-----|-------------|---------|--------|------|--------|
-| **GET** | `/solicitudes/{solicitudId}/rutas/tentativas` | Operador | **[RF#3]** Consultar rutas tentativas con cálculos | `solicitudId: Long` | `List<RutaTentativaDTO>` | 200, 404 | 🟡 Pendiente (Lógica) |
-| **POST** | `/solicitudes/{solicitudId}/rutas` | Operador | **[RF#4]** Asignar ruta con tramos a solicitud | `solicitudId: Long`, `RutaCreateDTO` (body) | `RutaDTO` | 201, 400, 404 | 🟡 Pendiente (Lógica) |
+| **GET** | `/solicitudes/{solicitudId}/rutas/tentativas` | Operador | **[RF#3]** Consultar rutas tentativas con cálculos | `solicitudId: Long` | `List<RutaTentativaDTO>` | 200, 404 | ✅ Implementado |
+| **POST** | `/solicitudes/{solicitudId}/asignar-ruta` | Operador | **[RF#4]** Asignar ruta con tramos a solicitud | `solicitudId: Long`, `RutaCreateDTO` (body) | `RutaDTO` | 201, 400, 404 | ✅ Implementado |
 | **GET** | `/rutas/{id}` | Operador | Obtener ruta por ID | `id: Long` | `RutaDTO` | 200, 404 | ✅ Implementado |
 
 #### DTOs - Rutas *(🟡 Pendiente - Lógica)*
@@ -446,12 +446,12 @@ RutaDTO {
 |--------|----------|-----|-------------|---------|--------|------|--------|
 | **GET** | `/tramos` | Transportista, Operador | Listar tramos con filtros | Query: `rutaId`, `camionId`, `estado` | `List<TramoDTO>` | 200 | ✅ Implementado |
 | **GET** | `/tramos/{id}` | Transportista, Operador | Obtener tramo por ID | `id: Long` | `TramoDTO` | 200, 404 | ✅ Implementado |
-| **POST** | `/tramos/{id}/asignar-camion` | Operador | **[RF#7]** Asignar camión a tramo | `id: Long`, `AsignacionCamionDTO` (body) | `TramoDTO` | 200, 400, 404 | 🟡 Pendiente (Lógica) |
-| **POST** | `/tramos/{id}/iniciar` | Transportista | **[RF#8]** Registrar inicio de tramo | `id: Long`, `InicioTramoDTO` (body) | `TramoDTO` | 200, 400, 404 | 🟡 Pendiente (Lógica) |
-| **POST** | `/tramos/{id}/finalizar` | Transportista | **[RF#8]** Registrar fin de tramo | `id: Long`, `FinTramoDTO` (body) | `TramoDTO` | 200, 400, 404 | 🟡 Pendiente (Lógica) |
+| **POST** | `/tramos/{id}/asignar-camion` | Operador | **[RF#6]** Asignar camión a tramo | `id: Long`, `AsignacionCamionDTO` (body) | `TramoDTO` | 200, 400, 404 | ✅ Implementado |
+| **POST** | `/tramos/{id}/iniciar` | Transportista | **[RF#8]** Registrar inicio de tramo | `id: Long` | `TramoDTO` | 200, 400, 404 | ✅ Implementado |
+| **POST** | `/tramos/{id}/finalizar` | Transportista | **[RF#8]** Registrar fin de tramo | `id: Long` | `TramoDTO` | 200, 400, 404 | ✅ Implementado |
 | **GET** | `/transportistas/{id}/tramos` | Transportista | Ver tramos asignados a transportista | `id: Long` | `List<TramoDTO>` | 200 | 🟡 Pendiente (Lógica) |
 
-#### DTOs - Tramos *(🟡 Pendiente - Lógica)*
+#### DTOs - Tramos *(✅ Implementado)*
 
 ```java
 // Entrada
@@ -614,19 +614,21 @@ DistanciaResponseDTO {
 
 Según **Enunciado - Requerimientos Funcionales Mínimos**:
 
-| RF# | Requerimiento | Endpoint(s) | Microservicio |
-|-----|--------------|------------|---------------|
-| **RF#1** | Registrar nueva solicitud de transporte | `POST /solicitudes` | Operaciones |
-| **RF#2** | Consultar estado del transporte | `GET /solicitudes/{id}/estado`<br>`GET /contenedores/{id}/estado` | Operaciones |
-| **RF#3** | Consultar rutas tentativas | `GET /solicitudes/{id}/rutas/tentativas` | Operaciones |
-| **RF#4** | Asignar ruta con tramos | `POST /solicitudes/{id}/rutas` | Operaciones |
-| **RF#5** | Consultar contenedores pendientes | `GET /contenedores/pendientes` | Operaciones |
-| **RF#6** | Asignar camión a tramo | `POST /tramos/{id}/asignar-camion` | Operaciones |
-| **RF#7** | Determinar inicio/fin de tramo | `POST /tramos/{id}/iniciar`<br>`POST /tramos/{id}/finalizar` | Operaciones |
-| **RF#8** | Calcular costo total | `POST /calculos/costo` | Operaciones |
-| **RF#9** | Registrar costo/tiempo final | `PATCH /solicitudes/{id}/finalizar` | Operaciones |
-| **RF#10** | Registrar/actualizar depósitos, camiones, tarifas | `POST/PUT/DELETE /camiones`<br>`POST/PUT/DELETE /depositos`<br>`POST/PUT /tarifas` | Flota |
-| **RF#11** | Validar capacidad de camión | Lógica interna en asignación | Operaciones |
+| RF# | Requerimiento | Endpoint(s) | Microservicio | Estado |
+|-----|--------------|------------|---------------|--------|
+| **RF#1** | Registrar nueva solicitud de transporte | `POST /solicitudes` | Operaciones | ✅ **Implementado** |
+| **RF#2** | Consultar estado del transporte | `GET /solicitudes/{id}/estado`<br>`GET /contenedores/{id}/estado` | Operaciones | ✅ **Implementado** |
+| **RF#3** | Consultar rutas tentativas | `GET /solicitudes/{id}/rutas/tentativas` | Operaciones | ✅ **Implementado** |
+| **RF#4** | Asignar ruta con tramos | `POST /solicitudes/{id}/asignar-ruta` | Operaciones | ✅ **Implementado** |
+| **RF#5** | Consultar contenedores pendientes | `GET /contenedores/pendientes` | Operaciones | 🟡 Pendiente |
+| **RF#6** | Asignar camión a tramo | `POST /tramos/{id}/asignar-camion` | Operaciones | ✅ **Implementado** |
+| **RF#7** | Determinar inicio/fin de tramo | `POST /tramos/{id}/iniciar`<br>`POST /tramos/{id}/finalizar` | Operaciones | ✅ **Implementado** (RF#8) |
+| **RF#8** | Calcular costo total | `POST /calculos/costo` | Operaciones | 🟡 Pendiente |
+| **RF#9** | Registrar costo/tiempo final | `PATCH /solicitudes/{id}/finalizar` | Operaciones | 🟡 Pendiente |
+| **RF#10** | Registrar/actualizar depósitos, camiones, tarifas | `POST/PUT/DELETE /camiones`<br>`POST/PUT/DELETE /depositos`<br>`POST/PUT /tarifas` | Flota | 🟡 Pendiente |
+| **RF#11** | Validar capacidad de camión | Lógica interna en asignación | Operaciones | ✅ **Implementado** (RF#6) |
+
+**Nota**: RF#7 y RF#8 se implementaron bajo el nombre RF#8 en la documentación interna, cumpliendo con la funcionalidad de iniciar/finalizar tramos.
 
 ---
 
