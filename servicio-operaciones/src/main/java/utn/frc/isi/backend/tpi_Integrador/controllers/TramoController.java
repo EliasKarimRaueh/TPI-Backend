@@ -1,7 +1,9 @@
 package utn.frc.isi.backend.tpi_Integrador.controllers;
 
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import utn.frc.isi.backend.tpi_Integrador.dtos.AsignacionCamionDTO;
 import utn.frc.isi.backend.tpi_Integrador.models.Tramo;
 import utn.frc.isi.backend.tpi_Integrador.services.TramoService;
 
@@ -50,5 +52,26 @@ public class TramoController {
     public ResponseEntity<Void> eliminarTramo(@PathVariable Long id) {
         tramoService.eliminarTramo(id);
         return ResponseEntity.noContent().build();
+    }
+    
+    /**
+     * POST /api/tramos/{id}/asignar-camion
+     * RF#6: Asignar un camión a un tramo específico
+     * Valida disponibilidad y capacidad del camión antes de la asignación
+     * Cambia el estado del tramo a "ASIGNADO" y marca el camión como no disponible
+     * 
+     * @param id ID del tramo
+     * @param asignacionDTO DTO con el ID del camión a asignar
+     * @return Tramo actualizado (200) o error (400, 404)
+     */
+    @PostMapping("/{id}/asignar-camion")
+    public ResponseEntity<Tramo> asignarCamion(@PathVariable Long id, @Valid @RequestBody AsignacionCamionDTO asignacionDTO) {
+        try {
+            Tramo tramoActualizado = tramoService.asignarCamion(id, asignacionDTO);
+            return ResponseEntity.ok(tramoActualizado);
+        } catch (RuntimeException e) {
+            // Retornar 400 Bad Request con el mensaje de error
+            return ResponseEntity.badRequest().build();
+        }
     }
 }
