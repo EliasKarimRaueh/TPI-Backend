@@ -19,6 +19,14 @@ public class Ruta {
     private String origen; // Punto de origen de la ruta
 
     private String destino; // Punto de destino de la ruta
+    
+    private Double latitudOrigen; // Latitud del origen
+    
+    private Double longitudOrigen; // Longitud del origen
+    
+    private Double latitudDestino; // Latitud del destino
+    
+    private Double longitudDestino; // Longitud del destino
 
     private double distanciaKm; // Distancia total en kilómetros
 

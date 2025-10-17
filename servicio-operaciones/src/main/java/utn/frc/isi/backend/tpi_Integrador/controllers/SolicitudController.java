@@ -3,9 +3,11 @@ package utn.frc.isi.backend.tpi_Integrador.controllers;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import utn.frc.isi.backend.tpi_Integrador.dtos.RutaTentativaDTO;
 import utn.frc.isi.backend.tpi_Integrador.dtos.SolicitudCreateDTO;
 import utn.frc.isi.backend.tpi_Integrador.dtos.SolicitudEstadoDTO;
 import utn.frc.isi.backend.tpi_Integrador.models.Solicitud;
+import utn.frc.isi.backend.tpi_Integrador.services.RutaService;
 import utn.frc.isi.backend.tpi_Integrador.services.SolicitudService;
 
 import java.util.List;
@@ -15,9 +17,11 @@ import java.util.List;
 public class SolicitudController {
 
     private final SolicitudService solicitudService;
+    private final RutaService rutaService;
 
-    public SolicitudController(SolicitudService solicitudService) {
+    public SolicitudController(SolicitudService solicitudService, RutaService rutaService) {
         this.solicitudService = solicitudService;
+        this.rutaService = rutaService;
     }
 
     @GetMapping
@@ -85,5 +89,25 @@ public class SolicitudController {
         return solicitudService.consultarEstadoSolicitud(id)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+    
+    /**
+     * GET /api/solicitudes/{solicitudId}/rutas/tentativas
+     * RF#3: Consultar rutas tentativas con cálculos de costo, tiempo y distancia
+     * Permite al operador evaluar diferentes opciones de ruta antes de asignar una definitiva
+     * Por ahora retorna una ruta directa simple, en el futuro podría ofrecer múltiples opciones
+     * 
+     * @param solicitudId ID de la solicitud
+     * @return Lista de rutas tentativas con cálculos (200) o Not Found (404)
+     */
+    @GetMapping("/{solicitudId}/rutas/tentativas")
+    public ResponseEntity<List<RutaTentativaDTO>> consultarRutasTentativas(@PathVariable Long solicitudId) {
+        try {
+            List<RutaTentativaDTO> rutas = rutaService.calcularRutasTentativas(solicitudId);
+            return ResponseEntity.ok(rutas);
+        } catch (RuntimeException e) {
+            // Si la solicitud no existe o no tiene ruta asociada
+            return ResponseEntity.notFound().build();
+        }
     }
 }

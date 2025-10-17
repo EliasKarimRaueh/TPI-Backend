@@ -118,6 +118,10 @@ public class SolicitudService {
         Ruta nuevaRuta = new Ruta();
         nuevaRuta.setOrigen(dto.getDireccionOrigen());
         nuevaRuta.setDestino(dto.getDireccionDestino());
+        nuevaRuta.setLatitudOrigen(dto.getLatitudOrigen());
+        nuevaRuta.setLongitudOrigen(dto.getLongitudOrigen());
+        nuevaRuta.setLatitudDestino(dto.getLatitudDestino());
+        nuevaRuta.setLongitudDestino(dto.getLongitudDestino());
         
         // Calcular distancia aproximada usando fórmula de Haversine (simplificada)
         double distancia = calcularDistancia(dto.getLatitudOrigen(), dto.getLongitudOrigen(), 
