@@ -243,7 +243,7 @@ ClienteDTO {
 |--------|----------|-----|-------------|---------|--------|------|--------|
 | **GET** | `/contenedores` | Operador | Listar contenedores con filtros | Query: `estado`, `clienteId` | `List<ContenedorDTO>` | 200 | ✅ Implementado |
 | **GET** | `/contenedores/{id}` | Cliente, Operador | Obtener contenedor por ID | `id: Long` | `ContenedorDTO` | 200, 404 | ✅ Implementado |
-| **GET** | `/contenedores/{id}/estado` | Cliente | **[RF#2]** Consultar estado de contenedor (seguimiento) | `id: Long` | `ContenedorEstadoDTO` | 200, 404 | 🟡 Pendiente (Lógica) |
+| **GET** | `/contenedores/{id}/estado` | Cliente | **[RF#2]** Consultar estado de contenedor (seguimiento) | `id: Long` | `ContenedorEstadoDTO` | 200, 404 | ✅ Implementado |
 | **GET** | `/contenedores/pendientes` | Operador | **[RF#6]** Consultar contenedores pendientes de entrega | Query: `depositoId`, `estado` | `List<ContenedorPendienteDTO>` | 200 | 🟡 Pendiente (Lógica) |
 
 #### DTOs - Contenedores *(✅ Implementado)*
@@ -296,7 +296,7 @@ ContenedorPendienteDTO {
 | **POST** | `/solicitudes` | Cliente | **[RF#1]** Registrar nueva solicitud de transporte | `SolicitudCreateDTO` (body) | `SolicitudDTO` | 201, 400 | ✅ Implementado |
 | **GET** | `/solicitudes` | Operador | Listar todas las solicitudes | Query: `estado`, `clienteId` | `List<SolicitudDTO>` | 200 | ✅ Implementado |
 | **GET** | `/solicitudes/{id}` | Cliente, Operador | Obtener solicitud por ID | `id: Long` | `SolicitudDTO` | 200, 404 | ✅ Implementado |
-| **GET** | `/solicitudes/{id}/estado` | Cliente | **[RF#2]** Consultar estado del transporte | `id: Long` | `SolicitudEstadoDTO` | 200, 404 | 🟡 Pendiente (Lógica) |
+| **GET** | `/solicitudes/{id}/estado` | Cliente | **[RF#2]** Consultar estado del transporte | `id: Long` | `SolicitudEstadoDTO` | 200, 404 | ✅ Implementado |
 | **PUT** | `/solicitudes/{id}/estado` | Operador, Sistema | Actualizar estado de solicitud | `id: Long`, `EstadoUpdateDTO` (body) | `SolicitudDTO` | 200, 404, 400 | 🟡 Pendiente (Lógica) |
 | **PATCH** | `/solicitudes/{id}/finalizar` | Sistema | **[RF#10]** Registrar costos y tiempos finales | `id: Long`, `FinalizacionDTO` (body) | `SolicitudDTO` | 200, 404 | 🟡 Pendiente (Lógica) |
 

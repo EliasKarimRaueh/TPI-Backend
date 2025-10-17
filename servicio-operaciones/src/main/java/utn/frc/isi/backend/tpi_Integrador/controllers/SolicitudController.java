@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import utn.frc.isi.backend.tpi_Integrador.dtos.SolicitudCreateDTO;
+import utn.frc.isi.backend.tpi_Integrador.dtos.SolicitudEstadoDTO;
 import utn.frc.isi.backend.tpi_Integrador.models.Solicitud;
 import utn.frc.isi.backend.tpi_Integrador.services.SolicitudService;
 
@@ -68,5 +69,21 @@ public class SolicitudController {
     public ResponseEntity<Void> eliminarSolicitud(@PathVariable Long id) {
         solicitudService.eliminarSolicitud(id);
         return ResponseEntity.noContent().build();
+    }
+    
+    /**
+     * GET /api/solicitudes/{id}/estado
+     * RF#2: Consultar estado completo del transporte
+     * Permite al cliente consultar el estado detallado de su solicitud,
+     * incluyendo ubicación del contenedor, progreso y ETA
+     * 
+     * @param id ID de la solicitud
+     * @return SolicitudEstadoDTO con información completa (200) o Not Found (404)
+     */
+    @GetMapping("/{id}/estado")
+    public ResponseEntity<SolicitudEstadoDTO> consultarEstadoSolicitud(@PathVariable Long id) {
+        return solicitudService.consultarEstadoSolicitud(id)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 }

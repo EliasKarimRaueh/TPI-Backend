@@ -2,7 +2,10 @@ package utn.frc.isi.backend.tpi_Integrador.repositories;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+import utn.frc.isi.backend.tpi_Integrador.models.Contenedor;
 import utn.frc.isi.backend.tpi_Integrador.models.Solicitud;
+
+import java.util.Optional;
 
 @Repository // Buena práctica para indicar que es un componente de persistencia
 public interface SolicitudRepository extends JpaRepository<Solicitud, Long> {
@@ -12,4 +15,10 @@ public interface SolicitudRepository extends JpaRepository<Solicitud, Long> {
     // - findAll()
     // - deleteById()
     // ¡Y muchos más, sin necesidad de implementarlos!
+    
+    /**
+     * Buscar solicitud por contenedor
+     * Usado en el seguimiento para obtener la solicitud asociada a un contenedor
+     */
+    Optional<Solicitud> findByContenedor(Contenedor contenedor);
 }

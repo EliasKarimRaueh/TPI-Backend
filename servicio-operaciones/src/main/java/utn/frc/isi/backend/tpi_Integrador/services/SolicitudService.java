@@ -2,7 +2,10 @@ package utn.frc.isi.backend.tpi_Integrador.services;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import utn.frc.isi.backend.tpi_Integrador.dtos.ContenedorEstadoDTO;
+import utn.frc.isi.backend.tpi_Integrador.dtos.RutaDTO;
 import utn.frc.isi.backend.tpi_Integrador.dtos.SolicitudCreateDTO;
+import utn.frc.isi.backend.tpi_Integrador.dtos.SolicitudEstadoDTO;
 import utn.frc.isi.backend.tpi_Integrador.models.Cliente;
 import utn.frc.isi.backend.tpi_Integrador.models.Contenedor;
 import utn.frc.isi.backend.tpi_Integrador.models.Solicitud;
@@ -13,6 +16,7 @@ import utn.frc.isi.backend.tpi_Integrador.repositories.ContenedorRepository;
 import utn.frc.isi.backend.tpi_Integrador.repositories.RutaRepository;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -162,6 +166,137 @@ public class SolicitudService {
         double distancia = RADIO_TIERRA * c; // Distancia en kilómetros
 
         return distancia;
+    }
+    
+    /**
+     * RF#2: Consultar estado completo de una solicitud de transporte
+     * Incluye estado del contenedor, ruta e historial de tramos
+     * 
+     * @param id ID de la solicitud
+     * @return Optional con SolicitudEstadoDTO si la solicitud existe
+     */
+    public Optional<SolicitudEstadoDTO> consultarEstadoSolicitud(Long id) {
+        return solicitudRepository.findById(id).map(solicitud -> {
+            SolicitudEstadoDTO estadoDTO = new SolicitudEstadoDTO();
+            
+            // Información básica de la solicitud
+            estadoDTO.setId(solicitud.getId());
+            estadoDTO.setEstado(solicitud.getEstado());
+            
+            // Estado del contenedor
+            if (solicitud.getContenedor() != null) {
+                ContenedorEstadoDTO contenedorEstado = new ContenedorEstadoDTO();
+                contenedorEstado.setId(solicitud.getContenedor().getId());
+                contenedorEstado.setNumero(solicitud.getContenedor().getNumero());
+                contenedorEstado.setEstado(solicitud.getContenedor().getEstado());
+                
+                // Ubicación del contenedor
+                String ubicacion = determinarUbicacionContenedor(solicitud.getContenedor().getEstado());
+                contenedorEstado.setUbicacionActual(ubicacion);
+                
+                if (solicitud.getCliente() != null) {
+                    contenedorEstado.setNombreCliente(solicitud.getCliente().getNombre());
+                }
+                contenedorEstado.setSolicitudId(solicitud.getId());
+                
+                estadoDTO.setContenedor(contenedorEstado);
+            }
+            
+            // Información de la ruta
+            if (solicitud.getRuta() != null) {
+                RutaDTO rutaDTO = new RutaDTO();
+                rutaDTO.setId(solicitud.getRuta().getId());
+                rutaDTO.setOrigen(solicitud.getRuta().getOrigen());
+                rutaDTO.setDestino(solicitud.getRuta().getDestino());
+                rutaDTO.setDistanciaKm(solicitud.getRuta().getDistanciaKm());
+                rutaDTO.setTiempoEstimadoHoras(solicitud.getRuta().getTiempoEstimadoHoras());
+                
+                estadoDTO.setRutaActual(rutaDTO);
+            }
+            
+            // Historial de tramos (por ahora vacío, se completará cuando implementemos tramos)
+            estadoDTO.setHistorialTramos(new ArrayList<>());
+            
+            // Calcular progreso basado en el estado
+            double progreso = calcularProgreso(solicitud.getEstado());
+            estadoDTO.setProgreso(progreso);
+            
+            // ETA al destino
+            String eta = calcularETA(solicitud);
+            estadoDTO.setEtaDestino(eta);
+            
+            return estadoDTO;
+        });
+    }
+    
+    /**
+     * Determina la ubicación textual del contenedor según su estado
+     */
+    private String determinarUbicacionContenedor(String estado) {
+        if (estado == null) {
+            return "Estado desconocido";
+        }
+        
+        switch (estado.toUpperCase()) {
+            case "EN_ORIGEN":
+                return "El contenedor se encuentra en la dirección de origen, listo para ser recogido.";
+            case "EN_DEPOSITO":
+                return "El contenedor está almacenado en un depósito intermedio de la ruta.";
+            case "EN_VIAJE":
+                return "El contenedor está en tránsito hacia el siguiente punto de la ruta.";
+            case "ENTREGADO":
+                return "El contenedor ha sido entregado exitosamente en la dirección de destino.";
+            default:
+                return "Estado: " + estado;
+        }
+    }
+    
+    /**
+     * Calcula el porcentaje de progreso basado en el estado de la solicitud
+     */
+    private double calcularProgreso(String estado) {
+        if (estado == null) {
+            return 0.0;
+        }
+        
+        switch (estado.toUpperCase()) {
+            case "BORRADOR":
+                return 10.0; // 10% - Solicitud creada
+            case "PROGRAMADA":
+                return 25.0; // 25% - Ruta asignada
+            case "EN_TRANSITO":
+                return 60.0; // 60% - En viaje
+            case "ENTREGADA":
+                return 100.0; // 100% - Completada
+            default:
+                return 0.0;
+        }
+    }
+    
+    /**
+     * Calcula el tiempo estimado de llegada (ETA) al destino
+     */
+    private String calcularETA(Solicitud solicitud) {
+        if (solicitud.getEstado() == null) {
+            return "No disponible";
+        }
+        
+        switch (solicitud.getEstado().toUpperCase()) {
+            case "BORRADOR":
+                return "Pendiente de programación";
+            case "PROGRAMADA":
+                return "Esperando inicio de transporte";
+            case "EN_TRANSITO":
+                if (solicitud.getTiempoEstimado() > 0) {
+                    int horas = (int) solicitud.getTiempoEstimado();
+                    return "Aproximadamente " + horas + " horas";
+                }
+                return "Calculando...";
+            case "ENTREGADA":
+                return "Ya entregado";
+            default:
+                return "No disponible";
+        }
     }
     
     // Aquí se podrían agregar más métodos de negocio en el futuro,
