@@ -1,14 +1,19 @@
 package utn.frc.isi.backend.tpi_Integrador.services;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import utn.frc.isi.backend.tpi_Integrador.dtos.Coordenada;
+import utn.frc.isi.backend.tpi_Integrador.dtos.RutaCreateDTO;
 import utn.frc.isi.backend.tpi_Integrador.dtos.RutaTentativaDTO;
+import utn.frc.isi.backend.tpi_Integrador.dtos.TramoCreateDTO;
 import utn.frc.isi.backend.tpi_Integrador.dtos.TramoTentativoDTO;
 import utn.frc.isi.backend.tpi_Integrador.models.Contenedor;
 import utn.frc.isi.backend.tpi_Integrador.models.Ruta;
 import utn.frc.isi.backend.tpi_Integrador.models.Solicitud;
+import utn.frc.isi.backend.tpi_Integrador.models.Tramo;
 import utn.frc.isi.backend.tpi_Integrador.repositories.RutaRepository;
 import utn.frc.isi.backend.tpi_Integrador.repositories.SolicitudRepository;
+import utn.frc.isi.backend.tpi_Integrador.repositories.TramoRepository;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,11 +24,13 @@ public class RutaService {
 
     private final RutaRepository rutaRepository;
     private final SolicitudRepository solicitudRepository;
+    private final TramoRepository tramoRepository;
 
     // Inyección de dependencias a través del constructor (práctica recomendada)
-    public RutaService(RutaRepository rutaRepository, SolicitudRepository solicitudRepository) {
+    public RutaService(RutaRepository rutaRepository, SolicitudRepository solicitudRepository, TramoRepository tramoRepository) {
         this.rutaRepository = rutaRepository;
         this.solicitudRepository = solicitudRepository;
+        this.tramoRepository = tramoRepository;
     }
 
     public List<Ruta> obtenerTodas() {
@@ -150,6 +157,94 @@ public class RutaService {
         double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         
         return RADIO_TIERRA_KM * c;
+    }
+    
+    /**
+     * Asigna una ruta definitiva a una solicitud (RF#4)
+     * Crea una nueva ruta con sus tramos y la asocia a la solicitud.
+     * Cambia el estado de la solicitud a "PROGRAMADA".
+     * 
+     * @param solicitudId ID de la solicitud
+     * @param dto DTO con la información de la ruta y sus tramos
+     * @return Ruta creada y asignada
+     */
+    @Transactional
+    public Ruta asignarRutaASolicitud(Long solicitudId, RutaCreateDTO dto) {
+        // 1. Buscar la solicitud
+        Solicitud solicitud = solicitudRepository.findById(solicitudId)
+                .orElseThrow(() -> new RuntimeException("Solicitud no encontrada con ID: " + solicitudId));
+        
+        // 2. Calcular totales de la ruta basándose en los tramos
+        double distanciaTotal = 0;
+        double tiempoTotal = 0;
+        
+        for (TramoCreateDTO tramoDto : dto.getTramos()) {
+            // Calcular distancia del tramo usando Haversine
+            double distanciaTramo = calcularDistanciaHaversine(
+                tramoDto.getLatitudInicio(), 
+                tramoDto.getLongitudInicio(),
+                tramoDto.getLatitudFin(), 
+                tramoDto.getLongitudFin()
+            );
+            distanciaTotal += distanciaTramo;
+            // Estimar tiempo (80 km/h promedio)
+            tiempoTotal += distanciaTramo / 80.0;
+        }
+        
+        // 3. Crear y guardar la nueva entidad Ruta
+        Ruta nuevaRuta = new Ruta();
+        
+        // Usar coordenadas del primer y último tramo
+        TramoCreateDTO primerTramo = dto.getTramos().get(0);
+        TramoCreateDTO ultimoTramo = dto.getTramos().get(dto.getTramos().size() - 1);
+        
+        nuevaRuta.setOrigen("Origen de la ruta");
+        nuevaRuta.setDestino("Destino de la ruta");
+        nuevaRuta.setLatitudOrigen(primerTramo.getLatitudInicio());
+        nuevaRuta.setLongitudOrigen(primerTramo.getLongitudInicio());
+        nuevaRuta.setLatitudDestino(ultimoTramo.getLatitudFin());
+        nuevaRuta.setLongitudDestino(ultimoTramo.getLongitudFin());
+        nuevaRuta.setDistanciaKm(distanciaTotal);
+        nuevaRuta.setTiempoEstimadoHoras((int) Math.ceil(tiempoTotal));
+        
+        Ruta rutaGuardada = rutaRepository.save(nuevaRuta);
+        
+        // 4. Crear y guardar cada Tramo de la ruta
+        for (TramoCreateDTO tramoDto : dto.getTramos()) {
+            Tramo nuevoTramo = new Tramo();
+            nuevoTramo.setRuta(rutaGuardada);
+            nuevoTramo.setOrden(tramoDto.getOrden());
+            nuevoTramo.setTipo(tramoDto.getTipo());
+            nuevoTramo.setLatitudInicio(tramoDto.getLatitudInicio());
+            nuevoTramo.setLongitudInicio(tramoDto.getLongitudInicio());
+            nuevoTramo.setLatitudFin(tramoDto.getLatitudFin());
+            nuevoTramo.setLongitudFin(tramoDto.getLongitudFin());
+            nuevoTramo.setEstado("PENDIENTE"); // Estado inicial
+            nuevoTramo.setFechaEstimadaInicio(tramoDto.getFechaEstimadaInicio());
+            nuevoTramo.setFechaEstimadaFin(tramoDto.getFechaEstimadaFin());
+            
+            // Calcular distancia del tramo
+            double distanciaTramo = calcularDistanciaHaversine(
+                tramoDto.getLatitudInicio(), 
+                tramoDto.getLongitudInicio(),
+                tramoDto.getLatitudFin(), 
+                tramoDto.getLongitudFin()
+            );
+            nuevoTramo.setDistanciaKm(distanciaTramo);
+            nuevoTramo.setTiempoEstimadoHoras((int) Math.ceil(distanciaTramo / 80.0));
+            
+            // Por ahora, no manejamos depósitos (se implementará en futuro)
+            // Los campos depositoOrigen y depositoDestino quedarán null
+            
+            tramoRepository.save(nuevoTramo);
+        }
+        
+        // 5. Asociar la ruta a la solicitud y actualizar estado
+        solicitud.setRuta(rutaGuardada);
+        solicitud.setEstado("PROGRAMADA");
+        solicitudRepository.save(solicitud);
+        
+        return rutaGuardada;
     }
     
     // Aquí se podrían agregar más métodos de negocio en el futuro,

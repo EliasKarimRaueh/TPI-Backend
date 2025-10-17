@@ -16,14 +16,36 @@ public class Tramo {
     @Id // Define el campo 'id' como la clave primaria de la tabla
     @GeneratedValue(strategy = GenerationType.IDENTITY) // Indica que el ID será autogenerado por la base de datos
     private Long id;
+    
+    private int orden; // Orden del tramo en la ruta (1, 2, 3...)
+    
+    private String tipo; // Tipo de tramo (ej: "ORIGEN-DESTINO", "ORIGEN-DEPOSITO", "DEPOSITO-DESTINO")
+    
+    private String estado; // Estado del tramo (ej: "PENDIENTE", "EN_PROCESO", "COMPLETADO")
 
     private String puntoInicio; // Punto de inicio del tramo
 
     private String puntoFin; // Punto de finalización del tramo
+    
+    private Double latitudInicio; // Latitud del punto de inicio
+    
+    private Double longitudInicio; // Longitud del punto de inicio
+    
+    private Double latitudFin; // Latitud del punto de fin
+    
+    private Double longitudFin; // Longitud del punto de fin
 
     private double distanciaKm; // Distancia del tramo en kilómetros
 
     private int tiempoEstimadoHoras; // Tiempo estimado en horas para el tramo
+    
+    private LocalDateTime fechaEstimadaInicio; // Fecha estimada de inicio del tramo
+    
+    private LocalDateTime fechaEstimadaFin; // Fecha estimada de finalización del tramo
+    
+    private LocalDateTime fechaRealInicio; // Fecha real de inicio del tramo
+    
+    private LocalDateTime fechaRealFin; // Fecha real de finalización del tramo
 
     @ManyToOne
     @JoinColumn(name = "ruta_id") // Así se llamará la columna en la BD
