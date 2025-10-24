@@ -6,9 +6,10 @@ import org.springframework.web.bind.annotation.*;
 import utn.frc.isi.backend.tpi_Integrador.dtos.RutaCreateDTO;
 import utn.frc.isi.backend.tpi_Integrador.dtos.RutaTentativaDTO;
 import utn.frc.isi.backend.tpi_Integrador.dtos.SolicitudCreateDTO;
+import utn.frc.isi.backend.tpi_Integrador.dtos.SolicitudDTO;
 import utn.frc.isi.backend.tpi_Integrador.dtos.SolicitudEstadoDTO;
+import utn.frc.isi.backend.tpi_Integrador.dtos.SolicitudUpdateDTO;
 import utn.frc.isi.backend.tpi_Integrador.models.Ruta;
-import utn.frc.isi.backend.tpi_Integrador.models.Solicitud;
 import utn.frc.isi.backend.tpi_Integrador.services.RutaService;
 import utn.frc.isi.backend.tpi_Integrador.services.SolicitudService;
 
@@ -27,13 +28,13 @@ public class SolicitudController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Solicitud>> obtenerTodas() {
-        List<Solicitud> solicitudes = solicitudService.obtenerTodas();
+    public ResponseEntity<List<SolicitudDTO>> obtenerTodas() {
+        List<SolicitudDTO> solicitudes = solicitudService.obtenerTodas();
         return ResponseEntity.ok(solicitudes);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Solicitud> obtenerPorId(@PathVariable Long id) {
+    public ResponseEntity<SolicitudDTO> obtenerPorId(@PathVariable Long id) {
         return solicitudService.obtenerPorId(id)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
@@ -48,9 +49,9 @@ public class SolicitudController {
      * @return solicitud creada (201) o error (400)
      */
     @PostMapping
-    public ResponseEntity<Solicitud> crearSolicitud(@Valid @RequestBody SolicitudCreateDTO solicitudDTO) {
+    public ResponseEntity<SolicitudDTO> crearSolicitud(@Valid @RequestBody SolicitudCreateDTO solicitudDTO) {
         try {
-            Solicitud nuevaSolicitud = solicitudService.crearNuevaSolicitud(solicitudDTO);
+            SolicitudDTO nuevaSolicitud = solicitudService.crearNuevaSolicitud(solicitudDTO);
             return ResponseEntity.status(201).body(nuevaSolicitud);
         } catch (IllegalArgumentException e) {
             // Error de validación de datos de entrada
@@ -62,8 +63,8 @@ public class SolicitudController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Solicitud> actualizarSolicitud(@PathVariable Long id, @RequestBody Solicitud solicitud) {
-        Solicitud solicitudActualizada = solicitudService.actualizarSolicitud(id, solicitud);
+    public ResponseEntity<SolicitudDTO> actualizarSolicitud(@PathVariable Long id, @Valid @RequestBody SolicitudUpdateDTO solicitud) {
+        SolicitudDTO solicitudActualizada = solicitudService.actualizarSolicitud(id, solicitud);
         if (solicitudActualizada != null) {
             return ResponseEntity.ok(solicitudActualizada);
         } else {

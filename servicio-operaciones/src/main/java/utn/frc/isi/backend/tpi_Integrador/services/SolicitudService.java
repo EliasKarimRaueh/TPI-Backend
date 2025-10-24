@@ -5,7 +5,10 @@ import org.springframework.transaction.annotation.Transactional;
 import utn.frc.isi.backend.tpi_Integrador.dtos.ContenedorEstadoDTO;
 import utn.frc.isi.backend.tpi_Integrador.dtos.RutaDTO;
 import utn.frc.isi.backend.tpi_Integrador.dtos.SolicitudCreateDTO;
+import utn.frc.isi.backend.tpi_Integrador.dtos.SolicitudDTO;
 import utn.frc.isi.backend.tpi_Integrador.dtos.SolicitudEstadoDTO;
+import utn.frc.isi.backend.tpi_Integrador.dtos.SolicitudUpdateDTO;
+import utn.frc.isi.backend.tpi_Integrador.mappers.SolicitudMapper;
 import utn.frc.isi.backend.tpi_Integrador.models.Cliente;
 import utn.frc.isi.backend.tpi_Integrador.models.Contenedor;
 import utn.frc.isi.backend.tpi_Integrador.models.Solicitud;
@@ -19,6 +22,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service // Marca esta clase como un componente de servicio de Spring
 @Transactional
@@ -30,6 +34,7 @@ public class SolicitudService {
     private final ClienteRepository clienteRepository;
     private final ContenedorRepository contenedorRepository;
     private final RutaRepository rutaRepository;
+    private final SolicitudMapper solicitudMapper;
 
     // Inyección de dependencias a través del constructor (práctica recomendada)
     public SolicitudService(SolicitudRepository solicitudRepository, 
@@ -37,37 +42,53 @@ public class SolicitudService {
                           ContenedorService contenedorService,
                           ClienteRepository clienteRepository,
                           ContenedorRepository contenedorRepository,
-                          RutaRepository rutaRepository) {
+                          RutaRepository rutaRepository,
+                          SolicitudMapper solicitudMapper) {
         this.solicitudRepository = solicitudRepository;
         this.clienteService = clienteService;
         this.contenedorService = contenedorService;
         this.clienteRepository = clienteRepository;
         this.contenedorRepository = contenedorRepository;
         this.rutaRepository = rutaRepository;
+        this.solicitudMapper = solicitudMapper;
     }
 
-    public List<Solicitud> obtenerTodas() {
-        return solicitudRepository.findAll();
+    /**
+     * Obtiene todas las solicitudes
+     * @return Lista de SolicitudDTO
+     */
+    public List<SolicitudDTO> obtenerTodas() {
+        return solicitudRepository.findAll()
+                .stream()
+                .map(solicitudMapper::toDTO)
+                .collect(Collectors.toList());
     }
 
-    public Optional<Solicitud> obtenerPorId(Long id) {
-        return solicitudRepository.findById(id);
+    /**
+     * Obtiene una solicitud por ID
+     * @param id ID de la solicitud
+     * @return Optional con SolicitudDTO si existe
+     */
+    public Optional<SolicitudDTO> obtenerPorId(Long id) {
+        return solicitudRepository.findById(id)
+                .map(solicitudMapper::toDTO);
     }
 
-    public Solicitud crearSolicitud(Solicitud solicitud) {
-        // Aquí podríamos agregar lógica de negocio.
-        // Por ejemplo: calcular costos estimados, validar que el contenedor y cliente existan, establecer estado inicial, etc.
-        // Por ahora, solo la guardamos.
-        return solicitudRepository.save(solicitud);
-    }
-
-    public Solicitud actualizarSolicitud(Long id, Solicitud solicitud) {
-        // Verificar si la solicitud existe
-        if (solicitudRepository.existsById(id)) {
-            solicitud.setId(id); // Asegurar que el ID sea el correcto
-            return solicitudRepository.save(solicitud);
+    /**
+     * Actualiza una solicitud existente
+     * @param id ID de la solicitud a actualizar
+     * @param dto DTO con los campos a actualizar
+     * @return SolicitudDTO actualizada o null si no existe
+     */
+    public SolicitudDTO actualizarSolicitud(Long id, SolicitudUpdateDTO dto) {
+        Optional<Solicitud> solicitudOpt = solicitudRepository.findById(id);
+        if (solicitudOpt.isPresent()) {
+            Solicitud solicitud = solicitudOpt.get();
+            solicitudMapper.updateEntity(dto, solicitud);
+            Solicitud solicitudActualizada = solicitudRepository.save(solicitud);
+            return solicitudMapper.toDTO(solicitudActualizada);
         }
-        return null; // Retorna null si no existe
+        return null;
     }
 
     public void eliminarSolicitud(Long id) {
@@ -79,11 +100,11 @@ public class SolicitudService {
      * Este método maneja la creación coordinada de cliente, contenedor y solicitud
      * 
      * @param dto datos de la solicitud a crear
-     * @return solicitud creada y guardada
+     * @return SolicitudDTO de la solicitud creada y guardada
      * @throws RuntimeException si el cliente no se encuentra o hay errores de validación
      */
     @Transactional
-    public Solicitud crearNuevaSolicitud(SolicitudCreateDTO dto) {
+    public SolicitudDTO crearNuevaSolicitud(SolicitudCreateDTO dto) {
         // Validación previa
         if (!dto.isValidClienteData()) {
             throw new IllegalArgumentException("Debe proporcionar clienteId O datos de cliente nuevo, pero no ambos");
@@ -92,15 +113,16 @@ public class SolicitudService {
         // 1. Gestionar el Cliente
         Cliente cliente;
         if (dto.getClienteId() != null) {
-            // Si se pasa un ID, buscar el cliente existente
-            cliente = clienteService.obtenerPorId(dto.getClienteId())
+            // Si se pasa un ID, buscar el cliente existente directamente del repository
+            cliente = clienteRepository.findById(dto.getClienteId())
                     .orElseThrow(() -> new RuntimeException("Cliente no encontrado con ID: " + dto.getClienteId()));
         } else {
             // Si no, crear un nuevo cliente con los datos proporcionados
             if (dto.getCliente() == null) {
                 throw new IllegalArgumentException("Debe proporcionar datos del cliente si no se especifica clienteId");
             }
-            cliente = clienteService.crearCliente(dto.getCliente());
+            // Guardar el cliente nuevo directamente con el repository
+            cliente = clienteRepository.save(dto.getCliente());
         }
 
         // 2. Crear el Contenedor
@@ -143,7 +165,8 @@ public class SolicitudService {
         nuevaSolicitud.setCostoEstimado(0.0);
         nuevaSolicitud.setTiempoEstimado(0.0);
 
-        return solicitudRepository.save(nuevaSolicitud);
+        Solicitud solicitudGuardada = solicitudRepository.save(nuevaSolicitud);
+        return solicitudMapper.toDTO(solicitudGuardada);
     }
     
     /**

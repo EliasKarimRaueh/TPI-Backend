@@ -8,8 +8,7 @@ import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
 /**
- * DTO para crear un nuevo contenedor dentro de una solicitud
- * Según especificación del documento de diseño de API
+ * DTO para crear un nuevo contenedor
  */
 @Data
 @NoArgsConstructor
@@ -24,9 +23,15 @@ public class ContenedorCreateDTO {
 
     @NotNull(message = "El peso es requerido")
     @Positive(message = "El peso debe ser positivo")
-    private double peso; // en kg
+    private Double peso; // en kg
 
     @NotNull(message = "El volumen es requerido")
     @Positive(message = "El volumen debe ser positivo")
-    private double volumen; // en m³
+    private Double volumen; // en m³
+    
+    @NotBlank(message = "El estado es obligatorio")
+    private String estado; // EN_ORIGEN, EN_VIAJE, EN_DEPOSITO, ENTREGADO
+    
+    @NotNull(message = "El cliente es obligatorio")
+    private Long clienteId; // ID del cliente asociado
 }

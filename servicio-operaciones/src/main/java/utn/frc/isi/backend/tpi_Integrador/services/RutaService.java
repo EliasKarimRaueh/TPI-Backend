@@ -4,11 +4,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import utn.frc.isi.backend.tpi_Integrador.dtos.Coordenada;
 import utn.frc.isi.backend.tpi_Integrador.dtos.RutaCreateDTO;
+import utn.frc.isi.backend.tpi_Integrador.dtos.RutaDTO;
 import utn.frc.isi.backend.tpi_Integrador.dtos.RutaTentativaDTO;
+import utn.frc.isi.backend.tpi_Integrador.dtos.RutaUpdateDTO;
 import utn.frc.isi.backend.tpi_Integrador.dtos.TramoCreateDTO;
 import utn.frc.isi.backend.tpi_Integrador.dtos.TramoTentativoDTO;
 import utn.frc.isi.backend.tpi_Integrador.dtos.googlemaps.Element;
-import utn.frc.isi.backend.tpi_Integrador.models.Contenedor;
+import utn.frc.isi.backend.tpi_Integrador.mappers.RutaMapper;
 import utn.frc.isi.backend.tpi_Integrador.models.Ruta;
 import utn.frc.isi.backend.tpi_Integrador.models.Solicitud;
 import utn.frc.isi.backend.tpi_Integrador.models.Tramo;
@@ -19,6 +21,7 @@ import utn.frc.isi.backend.tpi_Integrador.repositories.TramoRepository;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service // Marca esta clase como un componente de servicio de Spring
 public class RutaService {
@@ -27,40 +30,57 @@ public class RutaService {
     private final SolicitudRepository solicitudRepository;
     private final TramoRepository tramoRepository;
     private final GoogleMapsService googleMapsService;
+    private final RutaMapper rutaMapper;
 
     // Inyección de dependencias a través del constructor (práctica recomendada)
     public RutaService(RutaRepository rutaRepository, 
                       SolicitudRepository solicitudRepository, 
                       TramoRepository tramoRepository,
-                      GoogleMapsService googleMapsService) {
+                      GoogleMapsService googleMapsService,
+                      RutaMapper rutaMapper) {
         this.rutaRepository = rutaRepository;
         this.solicitudRepository = solicitudRepository;
         this.tramoRepository = tramoRepository;
         this.googleMapsService = googleMapsService;
+        this.rutaMapper = rutaMapper;
     }
 
-    public List<Ruta> obtenerTodas() {
-        return rutaRepository.findAll();
+    /**
+     * Obtiene todas las rutas
+     * @return Lista de RutaDTO
+     */
+    public List<RutaDTO> obtenerTodas() {
+        return rutaRepository.findAll()
+                .stream()
+                .map(rutaMapper::toDTO)
+                .collect(Collectors.toList());
     }
 
-    public Optional<Ruta> obtenerPorId(Long id) {
-        return rutaRepository.findById(id);
+    /**
+     * Obtiene una ruta por ID
+     * @param id ID de la ruta
+     * @return Optional con RutaDTO si existe
+     */
+    public Optional<RutaDTO> obtenerPorId(Long id) {
+        return rutaRepository.findById(id)
+                .map(rutaMapper::toDTO);
     }
 
-    public Ruta crearRuta(Ruta ruta) {
-        // Aquí podríamos agregar lógica de negocio.
-        // Por ejemplo: validar que la solicitud asociada exista, calcular automáticamente cantidades, etc.
-        // Por ahora, solo la guardamos.
-        return rutaRepository.save(ruta);
-    }
-
-    public Ruta actualizarRuta(Long id, Ruta ruta) {
-        // Verificar si la ruta existe
-        if (rutaRepository.existsById(id)) {
-            ruta.setId(id); // Asegurar que el ID sea el correcto
-            return rutaRepository.save(ruta);
+    /**
+     * Actualiza una ruta existente
+     * @param id ID de la ruta a actualizar
+     * @param dto DTO con los campos a actualizar
+     * @return RutaDTO actualizada o null si no existe
+     */
+    public RutaDTO actualizarRuta(Long id, RutaUpdateDTO dto) {
+        Optional<Ruta> rutaOpt = rutaRepository.findById(id);
+        if (rutaOpt.isPresent()) {
+            Ruta ruta = rutaOpt.get();
+            rutaMapper.updateEntity(dto, ruta);
+            Ruta rutaActualizada = rutaRepository.save(ruta);
+            return rutaMapper.toDTO(rutaActualizada);
         }
-        return null; // Retorna null si no existe
+        return null;
     }
 
     public void eliminarRuta(Long id) {

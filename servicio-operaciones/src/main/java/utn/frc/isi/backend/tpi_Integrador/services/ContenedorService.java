@@ -1,8 +1,12 @@
 package utn.frc.isi.backend.tpi_Integrador.services;
 
 import org.springframework.stereotype.Service;
+import utn.frc.isi.backend.tpi_Integrador.dtos.ContenedorCreateDTO;
+import utn.frc.isi.backend.tpi_Integrador.dtos.ContenedorDTO;
 import utn.frc.isi.backend.tpi_Integrador.dtos.ContenedorEstadoDTO;
 import utn.frc.isi.backend.tpi_Integrador.dtos.ContenedorPendienteDTO;
+import utn.frc.isi.backend.tpi_Integrador.dtos.ContenedorUpdateDTO;
+import utn.frc.isi.backend.tpi_Integrador.mappers.ContenedorMapper;
 import utn.frc.isi.backend.tpi_Integrador.models.Contenedor;
 import utn.frc.isi.backend.tpi_Integrador.repositories.ContenedorRepository;
 import utn.frc.isi.backend.tpi_Integrador.repositories.SolicitudRepository;
@@ -16,36 +20,49 @@ public class ContenedorService {
 
     private final ContenedorRepository contenedorRepository;
     private final SolicitudRepository solicitudRepository;
+    private final ContenedorMapper contenedorMapper;
 
     // Inyección de dependencias a través del constructor (práctica recomendada)
     public ContenedorService(ContenedorRepository contenedorRepository,
-                           SolicitudRepository solicitudRepository) {
+                           SolicitudRepository solicitudRepository,
+                           ContenedorMapper contenedorMapper) {
         this.contenedorRepository = contenedorRepository;
         this.solicitudRepository = solicitudRepository;
+        this.contenedorMapper = contenedorMapper;
     }
 
-    public List<Contenedor> obtenerTodos() {
-        return contenedorRepository.findAll();
+    public List<ContenedorDTO> obtenerTodos() {
+        return contenedorRepository.findAll()
+                .stream()
+                .map(contenedorMapper::toDTO)
+                .collect(Collectors.toList());
     }
 
-    public Optional<Contenedor> obtenerPorId(Long id) {
-        return contenedorRepository.findById(id);
+    public Optional<ContenedorDTO> obtenerPorId(Long id) {
+        return contenedorRepository.findById(id)
+                .map(contenedorMapper::toDTO);
     }
 
-    public Contenedor crearContenedor(Contenedor contenedor) {
+    public ContenedorDTO crearContenedor(ContenedorCreateDTO dto) {
         // Aquí podríamos agregar lógica de negocio.
         // Por ejemplo: validar que peso y volumen sean positivos, establecer estado inicial, etc.
-        // Por ahora, solo lo guardamos.
-        return contenedorRepository.save(contenedor);
+        Contenedor contenedor = contenedorMapper.toEntity(dto);
+        Contenedor contenedorGuardado = contenedorRepository.save(contenedor);
+        return contenedorMapper.toDTO(contenedorGuardado);
     }
 
-    public Contenedor actualizarContenedor(Long id, Contenedor contenedor) {
-        // Verificar si el contenedor existe
-        if (contenedorRepository.existsById(id)) {
-            contenedor.setId(id); // Asegurar que el ID sea el correcto
-            return contenedorRepository.save(contenedor);
+    public ContenedorDTO actualizarContenedor(Long id, ContenedorUpdateDTO dto) {
+        // Buscar el contenedor existente
+        Optional<Contenedor> contenedorOpt = contenedorRepository.findById(id);
+        
+        if (contenedorOpt.isEmpty()) {
+            return null; // Retorna null si no existe
         }
-        return null; // Retorna null si no existe
+        
+        Contenedor contenedor = contenedorOpt.get();
+        contenedorMapper.updateEntity(dto, contenedor);
+        Contenedor contenedorActualizado = contenedorRepository.save(contenedor);
+        return contenedorMapper.toDTO(contenedorActualizado);
     }
 
     public void eliminarContenedor(Long id) {

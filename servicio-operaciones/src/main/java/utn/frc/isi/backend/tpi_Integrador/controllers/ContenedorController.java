@@ -1,10 +1,13 @@
 package utn.frc.isi.backend.tpi_Integrador.controllers;
 
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import utn.frc.isi.backend.tpi_Integrador.dtos.ContenedorCreateDTO;
+import utn.frc.isi.backend.tpi_Integrador.dtos.ContenedorDTO;
 import utn.frc.isi.backend.tpi_Integrador.dtos.ContenedorEstadoDTO;
 import utn.frc.isi.backend.tpi_Integrador.dtos.ContenedorPendienteDTO;
-import utn.frc.isi.backend.tpi_Integrador.models.Contenedor;
+import utn.frc.isi.backend.tpi_Integrador.dtos.ContenedorUpdateDTO;
 import utn.frc.isi.backend.tpi_Integrador.services.ContenedorService;
 
 import java.util.List;
@@ -20,27 +23,29 @@ public class ContenedorController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Contenedor>> obtenerTodos() {
-        List<Contenedor> contenedores = contenedorService.obtenerTodos();
+    public ResponseEntity<List<ContenedorDTO>> obtenerTodos() {
+        List<ContenedorDTO> contenedores = contenedorService.obtenerTodos();
         return ResponseEntity.ok(contenedores);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Contenedor> obtenerPorId(@PathVariable Long id) {
+    public ResponseEntity<ContenedorDTO> obtenerPorId(@PathVariable Long id) {
         return contenedorService.obtenerPorId(id)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    public ResponseEntity<Contenedor> crearContenedor(@RequestBody Contenedor contenedor) {
-        Contenedor nuevoContenedor = contenedorService.crearContenedor(contenedor);
+    public ResponseEntity<ContenedorDTO> crearContenedor(@Valid @RequestBody ContenedorCreateDTO contenedorCreateDTO) {
+        ContenedorDTO nuevoContenedor = contenedorService.crearContenedor(contenedorCreateDTO);
         return ResponseEntity.status(201).body(nuevoContenedor);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Contenedor> actualizarContenedor(@PathVariable Long id, @RequestBody Contenedor contenedor) {
-        Contenedor contenedorActualizado = contenedorService.actualizarContenedor(id, contenedor);
+    public ResponseEntity<ContenedorDTO> actualizarContenedor(
+            @PathVariable Long id, 
+            @Valid @RequestBody ContenedorUpdateDTO contenedorUpdateDTO) {
+        ContenedorDTO contenedorActualizado = contenedorService.actualizarContenedor(id, contenedorUpdateDTO);
         if (contenedorActualizado != null) {
             return ResponseEntity.ok(contenedorActualizado);
         } else {

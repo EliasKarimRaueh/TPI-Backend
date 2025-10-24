@@ -1,8 +1,11 @@
 package utn.frc.isi.backend.tpi_Integrador.controllers;
 
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import utn.frc.isi.backend.tpi_Integrador.models.Cliente;
+import utn.frc.isi.backend.tpi_Integrador.dtos.ClienteCreateDTO;
+import utn.frc.isi.backend.tpi_Integrador.dtos.ClienteDTO;
+import utn.frc.isi.backend.tpi_Integrador.dtos.ClienteUpdateDTO;
 import utn.frc.isi.backend.tpi_Integrador.services.ClienteService;
 
 import java.util.List;
@@ -18,27 +21,29 @@ public class ClienteController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Cliente>> obtenerTodos() {
-        List<Cliente> clientes = clienteService.obtenerTodos();
+    public ResponseEntity<List<ClienteDTO>> obtenerTodos() {
+        List<ClienteDTO> clientes = clienteService.obtenerTodos();
         return ResponseEntity.ok(clientes);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Cliente> obtenerPorId(@PathVariable Long id) {
+    public ResponseEntity<ClienteDTO> obtenerPorId(@PathVariable Long id) {
         return clienteService.obtenerPorId(id)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    public ResponseEntity<Cliente> crearCliente(@RequestBody Cliente cliente) {
-        Cliente nuevoCliente = clienteService.crearCliente(cliente);
+    public ResponseEntity<ClienteDTO> crearCliente(@Valid @RequestBody ClienteCreateDTO clienteCreateDTO) {
+        ClienteDTO nuevoCliente = clienteService.crearCliente(clienteCreateDTO);
         return ResponseEntity.status(201).body(nuevoCliente);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Cliente> actualizarCliente(@PathVariable Long id, @RequestBody Cliente cliente) {
-        Cliente clienteActualizado = clienteService.actualizarCliente(id, cliente);
+    public ResponseEntity<ClienteDTO> actualizarCliente(
+            @PathVariable Long id, 
+            @Valid @RequestBody ClienteUpdateDTO clienteUpdateDTO) {
+        ClienteDTO clienteActualizado = clienteService.actualizarCliente(id, clienteUpdateDTO);
         if (clienteActualizado != null) {
             return ResponseEntity.ok(clienteActualizado);
         } else {

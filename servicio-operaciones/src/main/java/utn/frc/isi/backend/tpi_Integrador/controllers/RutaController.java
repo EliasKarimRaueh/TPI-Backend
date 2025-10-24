@@ -1,8 +1,10 @@
 package utn.frc.isi.backend.tpi_Integrador.controllers;
 
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import utn.frc.isi.backend.tpi_Integrador.models.Ruta;
+import utn.frc.isi.backend.tpi_Integrador.dtos.RutaDTO;
+import utn.frc.isi.backend.tpi_Integrador.dtos.RutaUpdateDTO;
 import utn.frc.isi.backend.tpi_Integrador.services.RutaService;
 
 import java.util.List;
@@ -18,27 +20,26 @@ public class RutaController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Ruta>> obtenerTodas() {
-        List<Ruta> rutas = rutaService.obtenerTodas();
+    public ResponseEntity<List<RutaDTO>> obtenerTodas() {
+        List<RutaDTO> rutas = rutaService.obtenerTodas();
         return ResponseEntity.ok(rutas);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Ruta> obtenerPorId(@PathVariable Long id) {
+    public ResponseEntity<RutaDTO> obtenerPorId(@PathVariable Long id) {
         return rutaService.obtenerPorId(id)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    @PostMapping
-    public ResponseEntity<Ruta> crearRuta(@RequestBody Ruta ruta) {
-        Ruta nuevaRuta = rutaService.crearRuta(ruta);
-        return ResponseEntity.status(201).body(nuevaRuta);
-    }
+    /**
+     * Nota: Las rutas se crean mediante POST /api/solicitudes/{solicitudId}/asignar-ruta (RF#4)
+     * No hay endpoint POST /api/rutas directo
+     */
 
     @PutMapping("/{id}")
-    public ResponseEntity<Ruta> actualizarRuta(@PathVariable Long id, @RequestBody Ruta ruta) {
-        Ruta rutaActualizada = rutaService.actualizarRuta(id, ruta);
+    public ResponseEntity<RutaDTO> actualizarRuta(@PathVariable Long id, @Valid @RequestBody RutaUpdateDTO ruta) {
+        RutaDTO rutaActualizada = rutaService.actualizarRuta(id, ruta);
         if (rutaActualizada != null) {
             return ResponseEntity.ok(rutaActualizada);
         } else {
