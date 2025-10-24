@@ -7,6 +7,7 @@ import utn.frc.isi.backend.tpi_Integrador.dtos.RutaCreateDTO;
 import utn.frc.isi.backend.tpi_Integrador.dtos.RutaTentativaDTO;
 import utn.frc.isi.backend.tpi_Integrador.dtos.TramoCreateDTO;
 import utn.frc.isi.backend.tpi_Integrador.dtos.TramoTentativoDTO;
+import utn.frc.isi.backend.tpi_Integrador.dtos.googlemaps.Element;
 import utn.frc.isi.backend.tpi_Integrador.models.Contenedor;
 import utn.frc.isi.backend.tpi_Integrador.models.Ruta;
 import utn.frc.isi.backend.tpi_Integrador.models.Solicitud;
@@ -25,12 +26,17 @@ public class RutaService {
     private final RutaRepository rutaRepository;
     private final SolicitudRepository solicitudRepository;
     private final TramoRepository tramoRepository;
+    private final GoogleMapsService googleMapsService;
 
     // Inyección de dependencias a través del constructor (práctica recomendada)
-    public RutaService(RutaRepository rutaRepository, SolicitudRepository solicitudRepository, TramoRepository tramoRepository) {
+    public RutaService(RutaRepository rutaRepository, 
+                      SolicitudRepository solicitudRepository, 
+                      TramoRepository tramoRepository,
+                      GoogleMapsService googleMapsService) {
         this.rutaRepository = rutaRepository;
         this.solicitudRepository = solicitudRepository;
         this.tramoRepository = tramoRepository;
+        this.googleMapsService = googleMapsService;
     }
 
     public List<Ruta> obtenerTodas() {
@@ -64,6 +70,7 @@ public class RutaService {
     /**
      * Calcula rutas tentativas para una solicitud específica.
      * Genera propuestas de rutas con información detallada de tramos, costos y tiempos.
+     * Utiliza Google Maps Distance Matrix API para obtener distancias y tiempos reales.
      * 
      * @param solicitudId ID de la solicitud
      * @return Lista de rutas tentativas con sus respectivos tramos
@@ -81,19 +88,26 @@ public class RutaService {
         
         List<RutaTentativaDTO> rutasTentativas = new ArrayList<>();
         
-        // Por ahora, generamos una ruta directa simple
-        // En el futuro, aquí se podrían calcular múltiples rutas alternativas con depósitos intermedios
+        // Formatear coordenadas para Google Maps API (formato: "lat,lng")
+        String origenLatLng = ruta.getLatitudOrigen() + "," + ruta.getLongitudOrigen();
+        String destinoLatLng = ruta.getLatitudDestino() + "," + ruta.getLongitudDestino();
         
-        // Calcular distancia usando la fórmula de Haversine
-        double distanciaKm = calcularDistanciaHaversine(
-            ruta.getLatitudOrigen(), 
-            ruta.getLongitudOrigen(),
-            ruta.getLatitudDestino(), 
-            ruta.getLongitudDestino()
-        );
+        // Obtener información de Google Maps
+        Optional<Element> elementOpt = googleMapsService.obtenerInformacionDistancia(origenLatLng, destinoLatLng);
         
-        // Estimar tiempo (asumiendo 80 km/h promedio)
-        double tiempoHoras = ruta.getTiempoEstimadoHoras();
+        double distanciaKm;
+        double tiempoHoras;
+        
+        if (elementOpt.isPresent()) {
+            Element element = elementOpt.get();
+            // Convertir distancia de metros a kilómetros
+            distanciaKm = element.getDistance().getValue() / 1000.0;
+            // Convertir duración de segundos a horas
+            tiempoHoras = element.getDuration().getValue() / 3600.0;
+        } else {
+            // Si Google Maps falla, lanzar excepción
+            throw new RuntimeException("No se pudo calcular la distancia usando Google Maps API. Verifique las coordenadas y la conectividad.");
+        }
         
         // Estimar costo ($5 por km como ejemplo)
         double costoEstimado = distanciaKm * 5.0;
@@ -117,7 +131,7 @@ public class RutaService {
         tramo.setDistanciaKm(distanciaKm);
         tramo.setTiempoEstimadoHoras(tiempoHoras);
         tramo.setCostoAproximado(costoEstimado);
-        tramo.setObservaciones("Ruta directa sin paradas intermedias");
+        tramo.setObservaciones("Ruta directa sin paradas intermedias (calculada con Google Maps)");
         
         // Crear la ruta tentativa
         RutaTentativaDTO rutaTentativa = new RutaTentativaDTO();
@@ -136,33 +150,10 @@ public class RutaService {
     }
     
     /**
-     * Calcula la distancia entre dos puntos geográficos usando la fórmula de Haversine.
-     * 
-     * @param lat1 Latitud del punto 1
-     * @param lon1 Longitud del punto 1
-     * @param lat2 Latitud del punto 2
-     * @param lon2 Longitud del punto 2
-     * @return Distancia en kilómetros
-     */
-    private double calcularDistanciaHaversine(double lat1, double lon1, double lat2, double lon2) {
-        final int RADIO_TIERRA_KM = 6371;
-        
-        double dLat = Math.toRadians(lat2 - lat1);
-        double dLon = Math.toRadians(lon2 - lon1);
-        
-        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                   Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) *
-                   Math.sin(dLon / 2) * Math.sin(dLon / 2);
-        
-        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        
-        return RADIO_TIERRA_KM * c;
-    }
-    
-    /**
      * Asigna una ruta definitiva a una solicitud (RF#4)
      * Crea una nueva ruta con sus tramos y la asocia a la solicitud.
      * Cambia el estado de la solicitud a "PROGRAMADA".
+     * Utiliza Google Maps Distance Matrix API para calcular distancias reales.
      * 
      * @param solicitudId ID de la solicitud
      * @param dto DTO con la información de la ruta y sus tramos
@@ -174,21 +165,28 @@ public class RutaService {
         Solicitud solicitud = solicitudRepository.findById(solicitudId)
                 .orElseThrow(() -> new RuntimeException("Solicitud no encontrada con ID: " + solicitudId));
         
-        // 2. Calcular totales de la ruta basándose en los tramos
+        // 2. Calcular totales de la ruta basándose en los tramos usando Google Maps
         double distanciaTotal = 0;
         double tiempoTotal = 0;
         
         for (TramoCreateDTO tramoDto : dto.getTramos()) {
-            // Calcular distancia del tramo usando Haversine
-            double distanciaTramo = calcularDistanciaHaversine(
-                tramoDto.getLatitudInicio(), 
-                tramoDto.getLongitudInicio(),
-                tramoDto.getLatitudFin(), 
-                tramoDto.getLongitudFin()
-            );
-            distanciaTotal += distanciaTramo;
-            // Estimar tiempo (80 km/h promedio)
-            tiempoTotal += distanciaTramo / 80.0;
+            // Formatear coordenadas para Google Maps API
+            String origenLatLng = tramoDto.getLatitudInicio() + "," + tramoDto.getLongitudInicio();
+            String destinoLatLng = tramoDto.getLatitudFin() + "," + tramoDto.getLongitudFin();
+            
+            // Obtener información de Google Maps
+            Optional<Element> elementOpt = googleMapsService.obtenerInformacionDistancia(origenLatLng, destinoLatLng);
+            
+            if (elementOpt.isPresent()) {
+                Element element = elementOpt.get();
+                // Convertir distancia de metros a kilómetros
+                double distanciaTramo = element.getDistance().getValue() / 1000.0;
+                distanciaTotal += distanciaTramo;
+                // Convertir duración de segundos a horas
+                tiempoTotal += element.getDuration().getValue() / 3600.0;
+            } else {
+                throw new RuntimeException("No se pudo calcular la distancia del tramo usando Google Maps API");
+            }
         }
         
         // 3. Crear y guardar la nueva entidad Ruta
@@ -223,15 +221,22 @@ public class RutaService {
             nuevoTramo.setFechaEstimadaInicio(tramoDto.getFechaEstimadaInicio());
             nuevoTramo.setFechaEstimadaFin(tramoDto.getFechaEstimadaFin());
             
-            // Calcular distancia del tramo
-            double distanciaTramo = calcularDistanciaHaversine(
-                tramoDto.getLatitudInicio(), 
-                tramoDto.getLongitudInicio(),
-                tramoDto.getLatitudFin(), 
-                tramoDto.getLongitudFin()
-            );
-            nuevoTramo.setDistanciaKm(distanciaTramo);
-            nuevoTramo.setTiempoEstimadoHoras((int) Math.ceil(distanciaTramo / 80.0));
+            // Calcular distancia del tramo usando Google Maps
+            String origenLatLng = tramoDto.getLatitudInicio() + "," + tramoDto.getLongitudInicio();
+            String destinoLatLng = tramoDto.getLatitudFin() + "," + tramoDto.getLongitudFin();
+            
+            Optional<Element> elementOpt = googleMapsService.obtenerInformacionDistancia(origenLatLng, destinoLatLng);
+            
+            if (elementOpt.isPresent()) {
+                Element element = elementOpt.get();
+                double distanciaTramo = element.getDistance().getValue() / 1000.0;
+                double tiempoTramo = element.getDuration().getValue() / 3600.0;
+                
+                nuevoTramo.setDistanciaKm(distanciaTramo);
+                nuevoTramo.setTiempoEstimadoHoras((int) Math.ceil(tiempoTramo));
+            } else {
+                throw new RuntimeException("No se pudo calcular la distancia del tramo usando Google Maps API");
+            }
             
             // Por ahora, no manejamos depósitos (se implementará en futuro)
             // Los campos depositoOrigen y depositoDestino quedarán null

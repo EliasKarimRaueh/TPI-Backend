@@ -123,11 +123,10 @@ public class SolicitudService {
         nuevaRuta.setLatitudDestino(dto.getLatitudDestino());
         nuevaRuta.setLongitudDestino(dto.getLongitudDestino());
         
-        // Calcular distancia aproximada usando fórmula de Haversine (simplificada)
-        double distancia = calcularDistancia(dto.getLatitudOrigen(), dto.getLongitudOrigen(), 
-                                           dto.getLatitudDestino(), dto.getLongitudDestino());
-        nuevaRuta.setDistanciaKm(distancia);
-        nuevaRuta.setTiempoEstimadoHoras((int) Math.ceil(distancia / 80)); // Aprox. 80 km/h
+        // La distancia y tiempo se calcularán cuando se consulten las rutas tentativas (RF#3)
+        // usando Google Maps Distance Matrix API
+        nuevaRuta.setDistanciaKm(0.0);
+        nuevaRuta.setTiempoEstimadoHoras(0);
         
         Ruta rutaGuardada = rutaRepository.save(nuevaRuta);
 
@@ -140,36 +139,11 @@ public class SolicitudService {
         nuevaSolicitud.setEstado("BORRADOR"); // Estado inicial según documento de diseño
         nuevaSolicitud.setFechaSolicitud(LocalDateTime.now().toString()); // Convertir a String
         
-        // Calcular costos estimados
-        double costoEstimado = distancia * 5.0; // $5 por km (ejemplo)
-        double tiempoEstimado = distancia / 80.0; // horas
-        
-        nuevaSolicitud.setCostoEstimado(costoEstimado);
-        nuevaSolicitud.setTiempoEstimado(tiempoEstimado);
+        // Los costos y tiempos se calcularán cuando se consulten las rutas tentativas
+        nuevaSolicitud.setCostoEstimado(0.0);
+        nuevaSolicitud.setTiempoEstimado(0.0);
 
         return solicitudRepository.save(nuevaSolicitud);
-    }
-    
-    /**
-     * Calcula la distancia entre dos puntos geográficos usando la fórmula de Haversine
-     * @param lat1 Latitud del punto 1
-     * @param lon1 Longitud del punto 1
-     * @param lat2 Latitud del punto 2
-     * @param lon2 Longitud del punto 2
-     * @return Distancia en kilómetros
-     */
-    private double calcularDistancia(double lat1, double lon1, double lat2, double lon2) {
-        final int RADIO_TIERRA = 6371; // Radio de la Tierra en kilómetros
-
-        double latDistance = Math.toRadians(lat2 - lat1);
-        double lonDistance = Math.toRadians(lon2 - lon1);
-        double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2)
-                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
-                * Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
-        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        double distancia = RADIO_TIERRA * c; // Distancia en kilómetros
-
-        return distancia;
     }
     
     /**
