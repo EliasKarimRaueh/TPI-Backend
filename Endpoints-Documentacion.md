@@ -244,11 +244,11 @@ ClienteDTO {
 | **GET** | `/contenedores` | Operador | Listar contenedores con filtros | Query: `estado`, `clienteId` | `List<ContenedorDTO>` | 200 | ✅ Implementado |
 | **GET** | `/contenedores/{id}` | Cliente, Operador | Obtener contenedor por ID | `id: Long` | `ContenedorDTO` | 200, 404 | ✅ Implementado |
 | **GET** | `/contenedores/{id}/estado` | Cliente | **[RF#2]** Consultar estado de contenedor (seguimiento) | `id: Long` | `ContenedorEstadoDTO` | 200, 404 | ✅ Implementado |
-| **GET** | `/contenedores/pendientes` | Operador | **[RF#6]** Consultar contenedores pendientes de entrega | Query: `depositoId`, `estado` | `List<ContenedorPendienteDTO>` | 200 | 🟡 Pendiente (Lógica) |
+| **GET** | `/contenedores/pendientes` | Operador | **[RF#5]** Consultar contenedores pendientes de asignación | - | `List<ContenedorPendienteDTO>` | 200 | ✅ Implementado |
 
 #### DTOs - Contenedores *(✅ Implementado)*
 
-**Estado de DTOs**: 🟡 Pendiente (Lógica) - Requiere implementación de DTOs específicos para seguimiento y estado
+**Estado de DTOs**: ✅ Implementado - DTOs completos con lógica de negocio funcionando
 
 ```java
 // Salida
@@ -280,10 +280,10 @@ ContenedorEstadoDTO {
 ContenedorPendienteDTO {
     Long id;
     String numero;
-    String estado;
-    String ubicacionActual;
-    ClienteDTO cliente;
-    SolicitudDTO solicitud;
+    String estado;                    // EN_ORIGEN, EN_DEPOSITO
+    String ubicacionActual;           // Descripción generada según estado
+    String cliente;                   // Nombre del cliente
+    Long solicitudId;                 // ID de solicitud asociada
 }
 ```
 
@@ -379,11 +379,13 @@ TramoHistorialDTO {
 
 | Método | Endpoint | Rol | Descripción | Entrada | Salida | HTTP | Estado |
 |--------|----------|-----|-------------|---------|--------|------|--------|
-| **GET** | `/solicitudes/{solicitudId}/rutas/tentativas` | Operador | **[RF#3]** Consultar rutas tentativas con cálculos | `solicitudId: Long` | `List<RutaTentativaDTO>` | 200, 404 | ✅ Implementado |
+| **GET** | `/solicitudes/{id}/rutas/tentativas` | Operador | **[RF#3]** Consultar rutas tentativas con cálculos (Google Maps) | `solicitudId: Long` | `List<RutaTentativaDTO>` | 200, 404 | ✅ Implementado |
 | **POST** | `/solicitudes/{solicitudId}/asignar-ruta` | Operador | **[RF#4]** Asignar ruta con tramos a solicitud | `solicitudId: Long`, `RutaCreateDTO` (body) | `RutaDTO` | 201, 400, 404 | ✅ Implementado |
 | **GET** | `/rutas/{id}` | Operador | Obtener ruta por ID | `id: Long` | `RutaDTO` | 200, 404 | ✅ Implementado |
 
-#### DTOs - Rutas *(🟡 Pendiente - Lógica)*
+#### DTOs - Rutas *(✅ Implementado)*
+
+**Estado de DTOs**: ✅ Implementado - Integración completa con Google Maps Distance Matrix API
 
 ```java
 // Entrada
@@ -407,23 +409,24 @@ TramoCreateDTO {
 // Salida
 RutaTentativaDTO {
     List<TramoTentativoDTO> tramos;
-    double costoEstimado;
-    double tiempoEstimado;             // en horas
-    double distanciaTotal;             // en km
+    double costoEstimadoTotal;
+    double tiempoEstimadoTotal;        // en horas (calculado por Google Maps)
+    double distanciaTotal;             // en km (calculado por Google Maps)
     int cantidadTramos;
     int cantidadDepositos;
+    String tipoRuta;                   // DIRECTA, CON_PARADAS
+    String descripcion;                // Descripción generada automáticamente
 }
 
 TramoTentativoDTO {
     int orden;
-    String tipo;
-    String puntoInicio;
-    String puntoFin;
-    double distanciaKm;
-    double tiempoEstimadoHoras;
-    double costoAproximado;
-    DepositoDTO depositoOrigen;
-    DepositoDTO depositoDestino;
+    String tipo;                       // ORIGEN-DESTINO, ORIGEN-DEPOSITO, etc.
+    Coordenada puntoInicio;            // Latitud y longitud de inicio
+    Coordenada puntoFin;               // Latitud y longitud de fin
+    double distanciaKm;                // Distancia real calculada con Google Maps
+    double tiempoEstimadoHoras;        // Tiempo real calculado con Google Maps
+    double costoAproximado;            // Costo estimado ($5/km)
+    String observaciones;              // "Ruta directa... (calculada con Google Maps)"
 }
 
 RutaDTO {
@@ -497,6 +500,43 @@ TramoDTO {
 
 ---
 
+### 🌍 Integración Google Maps API
+
+**Estado**: ✅ **Completamente Implementado y Funcional**
+
+La integración con Google Maps Distance Matrix API está funcionando correctamente:
+
+- **RestClient Configuration**: Bean configurado en `RestClientConfig.java`
+- **DTOs de Google Maps**: 5 DTOs implementados (`Distance`, `Duration`, `Element`, `Row`, `GoogleDistanceMatrixResponse`)
+- **Cliente HTTP**: `GoogleMapsClient` con manejo de errores y Optional
+- **Servicio de Negocio**: `GoogleMapsService` procesa respuestas de la API
+- **Uso en RutaService**: Cálculo de distancias y tiempos reales
+- **API Key**: Configurada en `application.properties` (protegida con .gitignore)
+
+**Endpoints que usan Google Maps**:
+- `GET /solicitudes/{id}/rutas/tentativas` - Calcula distancias y tiempos reales
+
+**Ejemplo de respuesta real**:
+```json
+{
+  "tramos": [{
+    "orden": 1,
+    "tipo": "ORIGEN-DESTINO",
+    "puntoInicio": {"latitud": -31.4201, "longitud": -64.1888},
+    "puntoFin": {"latitud": -34.6037, "longitud": -58.3816},
+    "distanciaKm": 695.477,
+    "tiempoEstimadoHoras": 7.35,
+    "costoAproximado": 3477.38,
+    "observaciones": "Ruta directa... (calculada con Google Maps)"
+  }],
+  "costoEstimadoTotal": 3477.38,
+  "tiempoEstimadoTotal": 7.35,
+  "distanciaTotal": 695.477
+}
+```
+
+---
+
 ### 🔄 Recurso: Referencias (Sincronización entre servicios)
 
 | Método | Endpoint | Rol | Descripción | Entrada | Salida | HTTP | Estado |
@@ -505,15 +545,6 @@ TramoDTO {
 | **GET** | `/camiones-reference` | Sistema | Listar referencias de camiones | - | `List<CamionReferenceDTO>` | 200 | ✅ Implementado |
 | **POST** | `/depositos-reference/sync` | Sistema | Sincronizar depósito desde servicio-flota | `DepositoSyncDTO` (body) | `DepositoReferenceDTO` | 201, 400 | 🟡 Pendiente (Lógica) |
 | **GET** | `/depositos-reference` | Sistema | Listar referencias de depósitos | - | `List<DepositoReferenceDTO>` | 200 | ✅ Implementado |
-
----
-
-### 🧮 Recurso: Cálculos
-
-| Método | Endpoint | Rol | Descripción | Entrada | Salida | HTTP | Estado |
-|--------|----------|-----|-------------|---------|--------|------|--------|
-| **POST** | `/calculos/costo` | Sistema, Operador | **[RF#9]** Calcular costo de ruta/tramo | `CalculoCostoRequestDTO` (body) | `CalculoCostoResponseDTO` | 200, 400 | 🟡 Pendiente (Lógica) |
-| **POST** | `/calculos/distancia` | Sistema | Consultar distancia entre puntos (Google Maps) | `DistanciaRequestDTO` (body) | `DistanciaResponseDTO` | 200, 400, 503 | 🟡 Pendiente (Lógica) |
 
 #### DTOs - Cálculos *(🟡 Pendiente - Lógica)*
 
@@ -618,9 +649,9 @@ Según **Enunciado - Requerimientos Funcionales Mínimos**:
 |-----|--------------|------------|---------------|--------|
 | **RF#1** | Registrar nueva solicitud de transporte | `POST /solicitudes` | Operaciones | ✅ **Implementado** |
 | **RF#2** | Consultar estado del transporte | `GET /solicitudes/{id}/estado`<br>`GET /contenedores/{id}/estado` | Operaciones | ✅ **Implementado** |
-| **RF#3** | Consultar rutas tentativas | `GET /solicitudes/{id}/rutas/tentativas` | Operaciones | ✅ **Implementado** |
+| **RF#3** | Consultar rutas tentativas | `GET /solicitudes/{id}/rutas/tentativas` | Operaciones | ✅ **Implementado con Google Maps** |
 | **RF#4** | Asignar ruta con tramos | `POST /solicitudes/{id}/asignar-ruta` | Operaciones | ✅ **Implementado** |
-| **RF#5** | Consultar contenedores pendientes | `GET /contenedores/pendientes` | Operaciones | 🟡 Pendiente |
+| **RF#5** | Consultar contenedores pendientes | `GET /contenedores/pendientes` | Operaciones | ✅ **Implementado** |
 | **RF#6** | Asignar camión a tramo | `POST /tramos/{id}/asignar-camion` | Operaciones | ✅ **Implementado** |
 | **RF#7** | Determinar inicio/fin de tramo | `POST /tramos/{id}/iniciar`<br>`POST /tramos/{id}/finalizar` | Operaciones | ✅ **Implementado** (RF#8) |
 | **RF#8** | Calcular costo total | `POST /calculos/costo` | Operaciones | 🟡 Pendiente |
@@ -698,12 +729,33 @@ Según **Enunciado - Requerimientos Funcionales Mínimos**:
   - Al crear/actualizar camión en Flota → Sincronizar en Operaciones
   - Al crear/actualizar depósito en Flota → Sincronizar en Operaciones
 
-### Integración con Google Maps:
+### ✅ Integración con Google Maps (IMPLEMENTADA):
 
-- Endpoint interno: `POST /calculos/distancia`
-- Parámetros: coordenadas origen y destino
-- Respuesta: distancia en km y tiempo estimado
-- Manejo de errores: timeout, límite de API, servicio caído
+**Estado**: ✅ Completamente Funcional
+
+- **API**: Google Maps Distance Matrix API
+- **Base URL**: `https://maps.googleapis.com/maps/api`
+- **Configuración**: RestClient con inyección de dependencias
+- **Componentes**:
+  - `GoogleMapsClient`: Cliente HTTP con manejo de Optional
+  - `GoogleMapsService`: Servicio de negocio para procesamiento
+  - 5 DTOs: `Distance`, `Duration`, `Element`, `Row`, `GoogleDistanceMatrixResponse`
+  - `RestClientConfig`: Bean de configuración con URL base
+
+**Funcionalidad**:
+- Cálculo de distancias reales en kilómetros
+- Cálculo de tiempos estimados en horas
+- Conversión automática de unidades (metros→km, segundos→horas)
+- Manejo robusto de errores con Optional
+
+**Uso**:
+- Integrado en `RutaService.calcularRutasTentativas()`
+- Endpoint: `GET /solicitudes/{id}/rutas/tentativas`
+- Ejemplo: Córdoba → Buenos Aires = 695.48 km, 7.35 horas
+
+**Seguridad**:
+- API Key protegida con `.gitignore`
+- Configurada en `application.properties` (no versionada)
 
 ---
 
