@@ -3,6 +3,7 @@ package utn.frc.isi.backend.tpi_Integrador.controllers;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import utn.frc.isi.backend.tpi_Integrador.dtos.ContenedorEstadoDTO;
+import utn.frc.isi.backend.tpi_Integrador.dtos.ContenedorPendienteDTO;
 import utn.frc.isi.backend.tpi_Integrador.models.Contenedor;
 import utn.frc.isi.backend.tpi_Integrador.services.ContenedorService;
 
@@ -66,5 +67,18 @@ public class ContenedorController {
         return contenedorService.consultarEstado(id)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+    
+    /**
+     * GET /api/contenedores/pendientes
+     * RF#5: Consultar contenedores pendientes de asignación a transporte
+     * Retorna la lista de contenedores que NO están en estado ENTREGADO
+     * 
+     * @return Lista de ContenedorPendienteDTO (200)
+     */
+    @GetMapping("/pendientes")
+    public ResponseEntity<List<ContenedorPendienteDTO>> consultarContenedoresPendientes() {
+        List<ContenedorPendienteDTO> pendientes = contenedorService.consultarPendientes();
+        return ResponseEntity.ok(pendientes);
     }
 }
