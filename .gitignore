@@ -17,3 +17,6 @@ HELP.md
 # Archivos del sistema operativo
 .DS_Store
 Thumbs.db
+
+# API Keys - Ignorar archivos de configuración con información sensible
+/servicio-operaciones/src/main/resources/application.properties
