@@ -2,44 +2,61 @@ package utn.frc.isi.backend.tpi_Integrador.services;
 
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import utn.frc.isi.backend.tpi_Integrador.dtos.CamionCreateDTO;
+import utn.frc.isi.backend.tpi_Integrador.dtos.CamionDTO;
+import utn.frc.isi.backend.tpi_Integrador.dtos.CamionUpdateDTO;
+import utn.frc.isi.backend.tpi_Integrador.mappers.CamionMapper;
 import utn.frc.isi.backend.tpi_Integrador.models.Camion;
 import utn.frc.isi.backend.tpi_Integrador.repositories.CamionRepository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service // Marca esta clase como un componente de servicio de Spring
 public class CamionService {
 
     private final CamionRepository camionRepository;
+    private final CamionMapper camionMapper;
 
     // Inyección de dependencias a través del constructor (práctica recomendada)
-    public CamionService(CamionRepository camionRepository) {
+    public CamionService(CamionRepository camionRepository, CamionMapper camionMapper) {
         this.camionRepository = camionRepository;
+        this.camionMapper = camionMapper;
     }
 
-    public List<Camion> obtenerTodos() {
-        return camionRepository.findAll();
+    public List<CamionDTO> obtenerTodos() {
+        return camionRepository.findAll()
+                .stream()
+                .map(camionMapper::toDTO)
+                .collect(Collectors.toList());
     }
 
-    public Optional<Camion> obtenerPorId(Long id) {
-        return camionRepository.findById(id);
+    public Optional<CamionDTO> obtenerPorId(Long id) {
+        return camionRepository.findById(id)
+                .map(camionMapper::toDTO);
     }
 
-    public Camion crearCamion(Camion camion) {
+    public CamionDTO crearCamion(CamionCreateDTO dto) {
         // Aquí podríamos agregar lógica de negocio.
         // Por ejemplo: antes de guardar, verificar que la patente no exista.
-        // Por ahora, solo lo guardamos.
-        return camionRepository.save(camion);
+        Camion camion = camionMapper.toEntity(dto);
+        Camion camionGuardado = camionRepository.save(camion);
+        return camionMapper.toDTO(camionGuardado);
     }
 
-    public Camion actualizarCamion(Long id, Camion camion) {
-        // Verificar si el camión existe
-        if (camionRepository.existsById(id)) {
-            camion.setId(id); // Asegurar que el ID sea el correcto
-            return camionRepository.save(camion);
+    public CamionDTO actualizarCamion(Long id, CamionUpdateDTO dto) {
+        // Buscar el camión existente
+        Optional<Camion> camionOpt = camionRepository.findById(id);
+        
+        if (camionOpt.isEmpty()) {
+            return null; // Retorna null si no existe
         }
-        return null; // Retorna null si no existe
+        
+        Camion camion = camionOpt.get();
+        camionMapper.updateEntity(dto, camion);
+        Camion camionActualizado = camionRepository.save(camion);
+        return camionMapper.toDTO(camionActualizado);
     }
 
     public void eliminarCamion(Long id) {
@@ -52,7 +69,7 @@ public class CamionService {
      * @param volumenMinimo filtro opcional para capacidad mínima de volumen
      * @return lista de camiones que cumplen los criterios
      */
-    public List<Camion> buscarDisponibles(Double pesoMinimo, Double volumenMinimo) {
+    public List<CamionDTO> buscarDisponibles(Double pesoMinimo, Double volumenMinimo) {
         // Crear especificación base: camión debe estar disponible
         Specification<Camion> spec = (root, query, cb) -> 
             cb.isTrue(root.get("disponible"));
@@ -71,7 +88,10 @@ public class CamionService {
             );
         }
 
-        return camionRepository.findAll(spec);
+        return camionRepository.findAll(spec)
+                .stream()
+                .map(camionMapper::toDTO)
+                .collect(Collectors.toList());
     }
     
     // Aquí se podrían agregar más métodos de negocio en el futuro,

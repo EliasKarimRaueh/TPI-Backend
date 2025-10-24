@@ -1,8 +1,11 @@
 package utn.frc.isi.backend.tpi_Integrador.controllers;
 
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import utn.frc.isi.backend.tpi_Integrador.models.Deposito;
+import utn.frc.isi.backend.tpi_Integrador.dtos.DepositoCreateDTO;
+import utn.frc.isi.backend.tpi_Integrador.dtos.DepositoDTO;
+import utn.frc.isi.backend.tpi_Integrador.dtos.DepositoUpdateDTO;
 import utn.frc.isi.backend.tpi_Integrador.services.DepositoService;
 
 import java.util.List;
@@ -18,27 +21,29 @@ public class DepositoController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Deposito>> obtenerTodos() {
-        List<Deposito> depositos = depositoService.obtenerTodos();
+    public ResponseEntity<List<DepositoDTO>> obtenerTodos() {
+        List<DepositoDTO> depositos = depositoService.obtenerTodos();
         return ResponseEntity.ok(depositos);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Deposito> obtenerPorId(@PathVariable Long id) {
+    public ResponseEntity<DepositoDTO> obtenerPorId(@PathVariable Long id) {
         return depositoService.obtenerPorId(id)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    public ResponseEntity<Deposito> crearDeposito(@RequestBody Deposito deposito) {
-        Deposito nuevoDeposito = depositoService.crearDeposito(deposito);
+    public ResponseEntity<DepositoDTO> crearDeposito(@Valid @RequestBody DepositoCreateDTO depositoCreateDTO) {
+        DepositoDTO nuevoDeposito = depositoService.crearDeposito(depositoCreateDTO);
         return ResponseEntity.status(201).body(nuevoDeposito);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Deposito> actualizarDeposito(@PathVariable Long id, @RequestBody Deposito deposito) {
-        Deposito depositoActualizado = depositoService.actualizarDeposito(id, deposito);
+    public ResponseEntity<DepositoDTO> actualizarDeposito(
+            @PathVariable Long id, 
+            @Valid @RequestBody DepositoUpdateDTO depositoUpdateDTO) {
+        DepositoDTO depositoActualizado = depositoService.actualizarDeposito(id, depositoUpdateDTO);
         if (depositoActualizado != null) {
             return ResponseEntity.ok(depositoActualizado);
         } else {

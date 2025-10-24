@@ -1,8 +1,11 @@
 package utn.frc.isi.backend.tpi_Integrador.controllers;
 
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import utn.frc.isi.backend.tpi_Integrador.models.Camion;
+import utn.frc.isi.backend.tpi_Integrador.dtos.CamionCreateDTO;
+import utn.frc.isi.backend.tpi_Integrador.dtos.CamionDTO;
+import utn.frc.isi.backend.tpi_Integrador.dtos.CamionUpdateDTO;
 import utn.frc.isi.backend.tpi_Integrador.services.CamionService;
 
 import java.util.List;
@@ -18,27 +21,29 @@ public class CamionController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Camion>> obtenerTodos() {
-        List<Camion> camiones = camionService.obtenerTodos();
+    public ResponseEntity<List<CamionDTO>> obtenerTodos() {
+        List<CamionDTO> camiones = camionService.obtenerTodos();
         return ResponseEntity.ok(camiones);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Camion> obtenerPorId(@PathVariable Long id) {
+    public ResponseEntity<CamionDTO> obtenerPorId(@PathVariable Long id) {
         return camionService.obtenerPorId(id)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    public ResponseEntity<Camion> crearCamion(@RequestBody Camion camion) {
-        Camion nuevoCamion = camionService.crearCamion(camion);
+    public ResponseEntity<CamionDTO> crearCamion(@Valid @RequestBody CamionCreateDTO camionCreateDTO) {
+        CamionDTO nuevoCamion = camionService.crearCamion(camionCreateDTO);
         return ResponseEntity.status(201).body(nuevoCamion);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Camion> actualizarCamion(@PathVariable Long id, @RequestBody Camion camion) {
-        Camion camionActualizado = camionService.actualizarCamion(id, camion);
+    public ResponseEntity<CamionDTO> actualizarCamion(
+            @PathVariable Long id, 
+            @Valid @RequestBody CamionUpdateDTO camionUpdateDTO) {
+        CamionDTO camionActualizado = camionService.actualizarCamion(id, camionUpdateDTO);
         if (camionActualizado != null) {
             return ResponseEntity.ok(camionActualizado);
         } else {
@@ -55,11 +60,11 @@ public class CamionController {
      * @return Lista de camiones que cumplen los criterios
      */
     @GetMapping("/disponibles")
-    public ResponseEntity<List<Camion>> obtenerCamionesDisponibles(
+    public ResponseEntity<List<CamionDTO>> obtenerCamionesDisponibles(
             @RequestParam(required = false) Double pesoMinimo,
             @RequestParam(required = false) Double volumenMinimo) {
 
-        List<Camion> camionesDisponibles = camionService.buscarDisponibles(pesoMinimo, volumenMinimo);
+        List<CamionDTO> camionesDisponibles = camionService.buscarDisponibles(pesoMinimo, volumenMinimo);
         return ResponseEntity.ok(camionesDisponibles);
     }
 
