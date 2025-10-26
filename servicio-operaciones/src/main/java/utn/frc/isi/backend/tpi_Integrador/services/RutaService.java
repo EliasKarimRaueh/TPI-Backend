@@ -1,5 +1,7 @@
 package utn.frc.isi.backend.tpi_Integrador.services;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import utn.frc.isi.backend.tpi_Integrador.dtos.Coordenada;
@@ -26,6 +28,8 @@ import java.util.stream.Collectors;
 @Service // Marca esta clase como un componente de servicio de Spring
 public class RutaService {
 
+    private static final Logger logger = LoggerFactory.getLogger(RutaService.class);
+
     private final RutaRepository rutaRepository;
     private final SolicitudRepository solicitudRepository;
     private final TramoRepository tramoRepository;
@@ -50,10 +54,13 @@ public class RutaService {
      * @return Lista de RutaDTO
      */
     public List<RutaDTO> obtenerTodas() {
-        return rutaRepository.findAll()
+        logger.info("Obteniendo todas las rutas");
+        List<RutaDTO> rutas = rutaRepository.findAll()
                 .stream()
                 .map(rutaMapper::toDTO)
                 .collect(Collectors.toList());
+        logger.info("Se encontraron {} rutas", rutas.size());
+        return rutas;
     }
 
     /**
@@ -62,8 +69,13 @@ public class RutaService {
      * @return Optional con RutaDTO si existe
      */
     public Optional<RutaDTO> obtenerPorId(Long id) {
-        return rutaRepository.findById(id)
+        logger.info("Buscando Ruta con ID: {}", id);
+        Optional<RutaDTO> rutaOpt = rutaRepository.findById(id)
                 .map(rutaMapper::toDTO);
+        if (rutaOpt.isEmpty()) {
+            logger.warn("Ruta con ID: {} no encontrada", id);
+        }
+        return rutaOpt;
     }
 
     /**
@@ -73,18 +85,23 @@ public class RutaService {
      * @return RutaDTO actualizada o null si no existe
      */
     public RutaDTO actualizarRuta(Long id, RutaUpdateDTO dto) {
+        logger.info("Actualizando ruta con ID: {}", id);
         Optional<Ruta> rutaOpt = rutaRepository.findById(id);
         if (rutaOpt.isPresent()) {
             Ruta ruta = rutaOpt.get();
             rutaMapper.updateEntity(dto, ruta);
             Ruta rutaActualizada = rutaRepository.save(ruta);
+            logger.info("Ruta con ID: {} actualizada exitosamente", id);
             return rutaMapper.toDTO(rutaActualizada);
         }
+        logger.warn("Ruta con ID: {} no encontrada para actualizar", id);
         return null;
     }
 
     public void eliminarRuta(Long id) {
+        logger.info("Eliminando ruta con ID: {}", id);
         rutaRepository.deleteById(id);
+        logger.info("Ruta con ID: {} eliminada exitosamente", id);
     }
     
     /**
@@ -96,13 +113,18 @@ public class RutaService {
      * @return Lista de rutas tentativas con sus respectivos tramos
      */
     public List<RutaTentativaDTO> calcularRutasTentativas(Long solicitudId) {
+        logger.info("Calculando rutas tentativas para solicitud ID: {}", solicitudId);
         // Buscar la solicitud
         Solicitud solicitud = solicitudRepository.findById(solicitudId)
-                .orElseThrow(() -> new RuntimeException("Solicitud no encontrada con ID: " + solicitudId));
+                .orElseThrow(() -> {
+                    logger.error("Solicitud no encontrada con ID: {}", solicitudId);
+                    return new RuntimeException("Solicitud no encontrada con ID: " + solicitudId);
+                });
         
         // Verificar que tenga una ruta asignada
         Ruta ruta = solicitud.getRuta();
         if (ruta == null) {
+            logger.error("La solicitud ID: {} no tiene una ruta asignada", solicitudId);
             throw new RuntimeException("La solicitud no tiene una ruta asignada");
         }
         

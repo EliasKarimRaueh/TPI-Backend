@@ -1,5 +1,7 @@
 package utn.frc.isi.backend.tpi_Integrador.services;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import utn.frc.isi.backend.tpi_Integrador.dtos.ContenedorEstadoDTO;
@@ -31,6 +33,8 @@ import java.util.stream.Collectors;
 @Service // Marca esta clase como un componente de servicio de Spring
 @Transactional
 public class SolicitudService {
+
+    private static final Logger logger = LoggerFactory.getLogger(SolicitudService.class);
 
     private final SolicitudRepository solicitudRepository;
     private final ClienteService clienteService;
@@ -68,10 +72,13 @@ public class SolicitudService {
      * @return Lista de SolicitudDTO
      */
     public List<SolicitudDTO> obtenerTodas() {
-        return solicitudRepository.findAll()
+        logger.info("Obteniendo todas las solicitudes");
+        List<SolicitudDTO> solicitudes = solicitudRepository.findAll()
                 .stream()
                 .map(solicitudMapper::toDTO)
                 .collect(Collectors.toList());
+        logger.info("Se encontraron {} solicitudes", solicitudes.size());
+        return solicitudes;
     }
 
     /**
@@ -80,8 +87,13 @@ public class SolicitudService {
      * @return Optional con SolicitudDTO si existe
      */
     public Optional<SolicitudDTO> obtenerPorId(Long id) {
-        return solicitudRepository.findById(id)
+        logger.info("Buscando Solicitud con ID: {}", id);
+        Optional<SolicitudDTO> solicitudOpt = solicitudRepository.findById(id)
                 .map(solicitudMapper::toDTO);
+        if (solicitudOpt.isEmpty()) {
+            logger.warn("Solicitud con ID: {} no encontrada", id);
+        }
+        return solicitudOpt;
     }
 
     /**
@@ -91,18 +103,23 @@ public class SolicitudService {
      * @return SolicitudDTO actualizada o null si no existe
      */
     public SolicitudDTO actualizarSolicitud(Long id, SolicitudUpdateDTO dto) {
+        logger.info("Actualizando solicitud con ID: {}", id);
         Optional<Solicitud> solicitudOpt = solicitudRepository.findById(id);
         if (solicitudOpt.isPresent()) {
             Solicitud solicitud = solicitudOpt.get();
             solicitudMapper.updateEntity(dto, solicitud);
             Solicitud solicitudActualizada = solicitudRepository.save(solicitud);
+            logger.info("Solicitud con ID: {} actualizada exitosamente", id);
             return solicitudMapper.toDTO(solicitudActualizada);
         }
+        logger.warn("Solicitud con ID: {} no encontrada para actualizar", id);
         return null;
     }
 
     public void eliminarSolicitud(Long id) {
+        logger.info("Eliminando solicitud con ID: {}", id);
         solicitudRepository.deleteById(id);
+        logger.info("Solicitud con ID: {} eliminada exitosamente", id);
     }
 
     /**

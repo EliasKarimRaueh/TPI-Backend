@@ -1,5 +1,7 @@
 package utn.frc.isi.backend.tpi_Integrador.services;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import utn.frc.isi.backend.tpi_Integrador.dtos.TarifaCreateDTO;
@@ -17,6 +19,8 @@ import java.util.Optional;
 @Transactional
 public class TarifaService {
 
+    private static final Logger logger = LoggerFactory.getLogger(TarifaService.class);
+
     private final TarifaRepository tarifaRepository;
     private final TarifaMapper tarifaMapper;
 
@@ -31,7 +35,12 @@ public class TarifaService {
      */
     @Transactional(readOnly = true)
     public Optional<Tarifa> obtenerTarifaActiva() {
-        return tarifaRepository.findByActiva(true);
+        logger.info("Obteniendo tarifa activa del sistema");
+        Optional<Tarifa> tarifaOpt = tarifaRepository.findByActiva(true);
+        if (tarifaOpt.isEmpty()) {
+            logger.warn("No se encontró tarifa activa en el sistema");
+        }
+        return tarifaOpt;
     }
 
     /**
@@ -40,6 +49,7 @@ public class TarifaService {
      */
     @Transactional(readOnly = true)
     public Optional<TarifaDTO> obtenerTarifaActivaDTO() {
+        logger.info("Obteniendo tarifa activa del sistema (DTO)");
         return tarifaRepository.findByActiva(true)
                 .map(tarifaMapper::toDTO);
     }
@@ -50,7 +60,10 @@ public class TarifaService {
      */
     @Transactional(readOnly = true)
     public List<Tarifa> obtenerTodas() {
-        return tarifaRepository.findAllByOrderByVigenciaDesdeDesc();
+        logger.info("Obteniendo todas las tarifas");
+        List<Tarifa> tarifas = tarifaRepository.findAllByOrderByVigenciaDesdeDesc();
+        logger.info("Se encontraron {} tarifas", tarifas.size());
+        return tarifas;
     }
 
     /**
@@ -59,6 +72,7 @@ public class TarifaService {
      */
     @Transactional(readOnly = true)
     public List<TarifaDTO> obtenerTodasDTO() {
+        logger.info("Obteniendo todas las tarifas (DTO)");
         return tarifaRepository.findAllByOrderByVigenciaDesdeDesc().stream()
                 .map(tarifaMapper::toDTO)
                 .toList();
@@ -71,7 +85,12 @@ public class TarifaService {
      */
     @Transactional(readOnly = true)
     public Optional<Tarifa> obtenerPorId(Long id) {
-        return tarifaRepository.findById(id);
+        logger.info("Buscando Tarifa con ID: {}", id);
+        Optional<Tarifa> tarifaOpt = tarifaRepository.findById(id);
+        if (tarifaOpt.isEmpty()) {
+            logger.warn("Tarifa con ID: {} no encontrada", id);
+        }
+        return tarifaOpt;
     }
 
     /**
@@ -81,6 +100,7 @@ public class TarifaService {
      */
     @Transactional(readOnly = true)
     public Optional<TarifaDTO> obtenerPorIdDTO(Long id) {
+        logger.info("Buscando Tarifa con ID: {} (DTO)", id);
         return tarifaRepository.findById(id)
                 .map(tarifaMapper::toDTO);
     }
@@ -92,6 +112,7 @@ public class TarifaService {
      * @return la tarifa creada
      */
     public Tarifa crearTarifa(Tarifa tarifa) {
+        logger.info("Creando nueva tarifa");
         // Establecer fecha de vigencia si no está presente
         if (tarifa.getVigenciaDesde() == null) {
             tarifa.setVigenciaDesde(LocalDateTime.now());
@@ -99,10 +120,13 @@ public class TarifaService {
         
         // Lógica de negocio: Solo puede haber una tarifa activa a la vez
         if (tarifa.isActiva()) {
+            logger.info("Desactivando tarifas activas previas antes de crear nueva tarifa activa");
             desactivarTarifasActivas();
         }
         
-        return tarifaRepository.save(tarifa);
+        Tarifa tarifaGuardada = tarifaRepository.save(tarifa);
+        logger.info("Tarifa creada exitosamente con ID: {}", tarifaGuardada.getId());
+        return tarifaGuardada;
     }
 
     /**
@@ -111,12 +135,15 @@ public class TarifaService {
      * @return DTO de la tarifa creada
      */
     public TarifaDTO crearTarifaFromDTO(TarifaCreateDTO createDTO) {
+        logger.info("Creando nueva tarifa desde DTO");
         Tarifa tarifa = tarifaMapper.toEntity(createDTO);
         
         // Lógica de negocio: Solo puede haber una tarifa activa a la vez
+        logger.info("Desactivando tarifas activas previas");
         desactivarTarifasActivas();
         
         Tarifa tarifaGuardada = tarifaRepository.save(tarifa);
+        logger.info("Tarifa creada exitosamente con ID: {}", tarifaGuardada.getId());
         return tarifaMapper.toDTO(tarifaGuardada);
     }
 
@@ -127,6 +154,7 @@ public class TarifaService {
      * @return Optional con la tarifa actualizada si existe
      */
     public Optional<Tarifa> actualizarTarifa(Long id, Tarifa tarifaActualizada) {
+        logger.info("Actualizando tarifa con ID: {}", id);
         return tarifaRepository.findById(id)
                 .map(tarifaExistente -> {
                     // Actualizar campos si están presentes
@@ -142,13 +170,17 @@ public class TarifaService {
                     
                     // Lógica especial para activar/desactivar
                     if (tarifaActualizada.isActiva() && !tarifaExistente.isActiva()) {
+                        logger.info("Activando tarifa ID: {} y desactivando otras tarifas activas", id);
                         desactivarTarifasActivas();
                         tarifaExistente.setActiva(true);
                     } else if (!tarifaActualizada.isActiva()) {
+                        logger.debug("Desactivando tarifa ID: {}", id);
                         tarifaExistente.setActiva(false);
                     }
                     
-                    return tarifaRepository.save(tarifaExistente);
+                    Tarifa guardada = tarifaRepository.save(tarifaExistente);
+                    logger.info("Tarifa con ID: {} actualizada exitosamente", id);
+                    return guardada;
                 });
     }
 
@@ -159,10 +191,12 @@ public class TarifaService {
      * @return Optional con DTO de la tarifa actualizada si existe
      */
     public Optional<TarifaDTO> actualizarTarifaFromDTO(Long id, TarifaUpdateDTO updateDTO) {
+        logger.info("Actualizando tarifa con ID: {} desde DTO", id);
         return tarifaRepository.findById(id)
                 .map(tarifaExistente -> {
                     // Lógica especial para activar/desactivar
                     if (updateDTO.getActiva() != null && updateDTO.getActiva() && !tarifaExistente.isActiva()) {
+                        logger.info("Activando tarifa ID: {} y desactivando otras tarifas activas", id);
                         desactivarTarifasActivas();
                     }
                     
@@ -170,6 +204,7 @@ public class TarifaService {
                     tarifaMapper.updateEntityFromDTO(tarifaExistente, updateDTO);
                     
                     Tarifa tarifaGuardada = tarifaRepository.save(tarifaExistente);
+                    logger.info("Tarifa con ID: {} actualizada exitosamente", id);
                     return tarifaMapper.toDTO(tarifaGuardada);
                 });
     }
@@ -181,15 +216,21 @@ public class TarifaService {
      * @return true si se eliminó, false si no existe o está activa
      */
     public boolean eliminarTarifa(Long id) {
+        logger.info("Intentando eliminar tarifa con ID: {}", id);
         return tarifaRepository.findById(id)
                 .map(tarifa -> {
                     if (tarifa.isActiva()) {
+                        logger.error("No se puede eliminar la tarifa ID: {} porque está activa", id);
                         throw new IllegalStateException("No se puede eliminar una tarifa activa");
                     }
                     tarifaRepository.deleteById(id);
+                    logger.info("Tarifa con ID: {} eliminada exitosamente", id);
                     return true;
                 })
-                .orElse(false);
+                .orElseGet(() -> {
+                    logger.warn("Tarifa con ID: {} no encontrada para eliminar", id);
+                    return false;
+                });
     }
 
     /**
@@ -197,8 +238,10 @@ public class TarifaService {
      * Método de utilidad para asegurar que solo haya una tarifa activa
      */
     private void desactivarTarifasActivas() {
+        logger.debug("Desactivando todas las tarifas activas");
         tarifaRepository.findByActiva(true)
                 .ifPresent(tarifaActiva -> {
+                    logger.info("Desactivando tarifa ID: {}", tarifaActiva.getId());
                     tarifaActiva.setActiva(false);
                     tarifaActiva.setVigenciaHasta(LocalDateTime.now());
                     tarifaRepository.save(tarifaActiva);
@@ -211,6 +254,9 @@ public class TarifaService {
      */
     @Transactional(readOnly = true)
     public boolean existeTarifaActiva() {
-        return tarifaRepository.existsByActiva(true);
+        logger.debug("Verificando si existe tarifa activa");
+        boolean existe = tarifaRepository.existsByActiva(true);
+        logger.info("Existe tarifa activa: {}", existe);
+        return existe;
     }
 }
