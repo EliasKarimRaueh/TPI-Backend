@@ -249,19 +249,29 @@ public class TramoService {
         logger.debug("Camión obtenido: consumo={} L/km, costoPorKm={}", 
                     camion.getConsumoCombustiblePorKm(), camion.getCostoPorKm());
         
-        // 3.3 Calcular costo real usando la fórmula:
-        // costoReal = cargoGestion + (costoPorKm * distanciaKm) + (consumoCombustible * distanciaKm * precioCombustible)
+        // 3.3 Calcular componentes del costo según el enunciado:
+        // Cargo de Gestión por Tramo
         double cargoGestion = tarifa.getCargoGestionPorTramo();
-        double costoPorKm = camion.getCostoPorKm() * tramo.getDistanciaKm();
-        double costoCombustible = camion.getConsumoCombustiblePorKm() * tramo.getDistanciaKm() * tarifa.getPrecioLitroCombustible();
         
-        double costoReal = cargoGestion + costoPorKm + costoCombustible;
+        // Costo por Kilometraje
+        double costoKilometraje = camion.getCostoPorKm() * tramo.getDistanciaKm();
         
-        logger.info("Costo real calculado para tramo {}: cargo={}, costoPorKm={}, combustible={}, TOTAL={}", 
-                   tramoId, cargoGestion, costoPorKm, costoCombustible, costoReal);
+        // Costo de Combustible
+        double costoCombustible = camion.getConsumoCombustiblePorKm() 
+                                  * tramo.getDistanciaKm() 
+                                  * tarifa.getPrecioLitroCombustible();
+        
+        // Costo de Estadía (si el tramo termina en depósito)
+        double costoEstadia = calcularCostoEstadia(tramo, tarifa);
+        
+        // Costo Total
+        double costoTotalTramo = cargoGestion + costoKilometraje + costoCombustible + costoEstadia;
+        
+        logger.info("Costo real calculado para tramo {}: cargoGestion={}, costoKm={}, combustible={}, estadia={}, TOTAL={}", 
+                   tramoId, cargoGestion, costoKilometraje, costoCombustible, costoEstadia, costoTotalTramo);
         
         // 3.4 Asignar costo real al tramo
-        tramo.setCostoReal(costoReal);
+        tramo.setCostoReal(costoTotalTramo);
         
         // 4. Actualizar estado del Tramo
         tramo.setEstado("FINALIZADO");
@@ -295,17 +305,66 @@ public class TramoService {
             }
         }
         
-        // 8. Liberar el camión
-        if (tramo.getCamionReference() != null) {
-            CamionReference camion2 = tramo.getCamionReference();
-            camion2.setDisponible(true);
-            camionReferenceRepository.save(camion2);
-            logger.debug("Camión {} liberado y marcado como disponible", camion2.getDominio());
+        // 8. Guardar el tramo actualizado
+        Tramo tramoGuardado = tramoRepository.save(tramo);
+        
+        // 9. Liberar el camión en servicio-flota (marca como disponible)
+        try {
+            flotaServiceClient.actualizarDisponibilidadCamion(camionId, true);
+            logger.info("Camión ID {} marcado como disponible en servicio-flota", camionId);
+        } catch (Exception e) {
+            logger.warn("No se pudo actualizar disponibilidad del camión en servicio-flota: {}", e.getMessage());
+            // Fallback: actualizar la referencia local
+            CamionReference camionRef = tramo.getCamionReference();
+            camionRef.setDisponible(true);
+            camionReferenceRepository.save(camionRef);
+            logger.debug("Camión {} liberado localmente como fallback", camionRef.getDominio());
         }
         
-        // 9. Guardar y retornar el tramo actualizado como DTO
-        Tramo tramoGuardado = tramoRepository.save(tramo);
+        // 10. Retornar el tramo actualizado como DTO
         return tramoMapper.toDTO(tramoGuardado);
+    }
+    
+    /**
+     * Calcula el costo de estadía si el tramo finaliza en un depósito
+     * 
+     * @param tramo El tramo que está finalizando
+     * @param tarifa La tarifa activa con el costo de estadía diaria
+     * @return Costo de estadía calculado (0 si no termina en depósito)
+     */
+    private double calcularCostoEstadia(Tramo tramo, TarifaDTO tarifa) {
+        // Verificar si el tramo termina en un depósito
+        if (tramo.getDepositoDestino() == null) {
+            logger.debug("Tramo {} no termina en depósito, costo estadía = 0", tramo.getId());
+            return 0.0;
+        }
+        
+        // Calcular días de estadía
+        LocalDateTime fechaInicio = tramo.getFechaRealInicio();
+        LocalDateTime fechaFin = LocalDateTime.now(); // Momento de finalización
+        
+        if (fechaInicio == null) {
+            logger.warn("Tramo {} no tiene fecha de inicio, asumiendo 0 días de estadía", tramo.getId());
+            return 0.0;
+        }
+        
+        // Calcular diferencia en días (redondeado hacia arriba)
+        long horasEstadia = java.time.Duration.between(fechaInicio, fechaFin).toHours();
+        int diasEstadia = (int) Math.ceil(horasEstadia / 24.0);
+        
+        // Si la estadía es menor a 1 día, cobrar 1 día mínimo
+        if (diasEstadia < 1 && horasEstadia > 0) {
+            diasEstadia = 1;
+        }
+        
+        // Obtener costo de estadía diaria desde la tarifa
+        double costoEstadiaDiaria = tarifa.getCostoEstadiaDiaria();
+        double costoTotal = diasEstadia * costoEstadiaDiaria;
+        
+        logger.debug("Costo estadía para tramo {}: {} días × {} = {}", 
+                    tramo.getId(), diasEstadia, costoEstadiaDiaria, costoTotal);
+        
+        return costoTotal;
     }
     
     // Aquí se podrían agregar más métodos de negocio en el futuro,

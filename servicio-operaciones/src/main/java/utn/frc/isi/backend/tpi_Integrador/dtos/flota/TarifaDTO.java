@@ -21,6 +21,7 @@ public class TarifaDTO {
     private double costoKmBase;
     private double precioLitroCombustible;
     private double cargoGestionPorTramo;
+    private double costoEstadiaDiaria; // Costo por día de estadía en depósito
     private LocalDateTime vigenciaDesde;
     private LocalDateTime vigenciaHasta;
     private boolean activa;

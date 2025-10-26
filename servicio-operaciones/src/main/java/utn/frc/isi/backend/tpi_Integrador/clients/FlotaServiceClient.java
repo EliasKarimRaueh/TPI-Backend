@@ -89,4 +89,43 @@ public class FlotaServiceClient {
         }
         return Optional.empty();
     }
+    
+    /**
+     * Actualiza la disponibilidad de un camión en servicio-flota
+     * Se llama cuando un tramo finaliza para liberar el camión
+     * 
+     * @param camionId ID del camión a actualizar
+     * @param disponible true para marcar como disponible, false para ocupado
+     * @throws RuntimeException si la actualización falla
+     */
+    public void actualizarDisponibilidadCamion(Long camionId, boolean disponible) {
+        String uri = "/camiones/{camionId}/disponibilidad";
+        try {
+            logger.debug("Actualizando disponibilidad del camión {} a: {}", camionId, disponible);
+            
+            // Crear el body con la nueva disponibilidad
+            var requestBody = new java.util.HashMap<String, Boolean>();
+            requestBody.put("disponible", disponible);
+            
+            ResponseEntity<Void> response = restClient.patch()
+                    .uri(uri, camionId)
+                    .body(requestBody)
+                    .retrieve()
+                    .toBodilessEntity();
+
+            if (response.getStatusCode().is2xxSuccessful()) {
+                logger.info("Disponibilidad del camión {} actualizada exitosamente a: {}", camionId, disponible);
+            } else {
+                logger.error("Error al actualizar disponibilidad del camión {}. Status: {}", camionId, response.getStatusCode());
+                throw new RuntimeException("No se pudo actualizar disponibilidad del camión " + camionId);
+            }
+        } catch (HttpClientErrorException e) {
+            logger.error("Error HTTP al actualizar disponibilidad del camión {}: {} - {}", 
+                        camionId, e.getStatusCode(), e.getResponseBodyAsString(), e);
+            throw new RuntimeException("Error al actualizar disponibilidad del camión " + camionId + ": " + e.getMessage(), e);
+        } catch (Exception e) {
+            logger.error("Error inesperado al actualizar disponibilidad del camión {} en servicio-flota", camionId, e);
+            throw new RuntimeException("Error inesperado al actualizar disponibilidad del camión " + camionId, e);
+        }
+    }
 }
