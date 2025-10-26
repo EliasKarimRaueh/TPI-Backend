@@ -332,9 +332,12 @@ public class SolicitudService {
      */
     @Transactional
     public Optional<SolicitudDTO> finalizarSolicitud(Long solicitudId) {
+        logger.info("Iniciando finalización de solicitud ID: {}", solicitudId);
+        
         // 1. Buscar la solicitud
         Optional<Solicitud> optionalSolicitud = solicitudRepository.findById(solicitudId);
         if (optionalSolicitud.isEmpty()) {
+            logger.warn("Solicitud ID: {} no encontrada para finalizar", solicitudId);
             return Optional.empty();
         }
         
@@ -342,6 +345,8 @@ public class SolicitudService {
         
         // 2. Validar que la solicitud esté EN_TRANSITO
         if (!"EN_TRANSITO".equals(solicitud.getEstado())) {
+            logger.error("Solicitud ID: {} no puede finalizarse. Estado actual: {} (debe ser EN_TRANSITO)", 
+                        solicitudId, solicitud.getEstado());
             throw new IllegalStateException(
                 "La solicitud debe estar EN_TRANSITO para poder finalizarse. Estado actual: " + solicitud.getEstado()
             );
@@ -350,14 +355,19 @@ public class SolicitudService {
         // 3. Obtener la ruta y verificar que exista
         Ruta ruta = solicitud.getRuta();
         if (ruta == null) {
+            logger.error("Solicitud ID: {} no tiene una ruta asignada", solicitudId);
             throw new IllegalStateException("La solicitud no tiene una ruta asignada");
         }
         
         // 4. Obtener todos los tramos de la ruta
         List<Tramo> tramos = tramoRepository.findByRutaId(ruta.getId());
         if (tramos.isEmpty()) {
+            logger.error("La ruta ID: {} de la solicitud ID: {} no tiene tramos asignados", 
+                        ruta.getId(), solicitudId);
             throw new IllegalStateException("La ruta no tiene tramos asignados");
         }
+        
+        logger.debug("Solicitud ID: {} tiene {} tramos", solicitudId, tramos.size());
         
         // 5. Verificar que TODOS los tramos estén FINALIZADOS
         List<Tramo> tramosPendientes = tramos.stream()
@@ -372,8 +382,12 @@ public class SolicitudService {
                     .map(t -> "Tramo #" + t.getId() + " (estado: " + t.getEstado() + ")")
                     .collect(Collectors.joining(", "))
             );
+            logger.error("Solicitud ID: {} - {}", solicitudId, mensajeError);
             throw new IllegalStateException(mensajeError);
         }
+        
+        logger.info("Todos los tramos de la solicitud ID: {} están finalizados. Calculando costos y tiempos...", 
+                   solicitudId);
         
         // 6. Calcular el costo total sumando el costo real de cada tramo
         double costoTotal = tramos.stream()
@@ -382,6 +396,8 @@ public class SolicitudService {
                 return costoReal != null ? costoReal : 0.0;
             })
             .sum();
+        
+        logger.debug("Costo total calculado para solicitud ID: {}: ${}", solicitudId, costoTotal);
         
         // 7. Calcular el tiempo total en horas sumando la duración de cada tramo
         double tiempoTotalHoras = tramos.stream()
@@ -397,6 +413,8 @@ public class SolicitudService {
             })
             .sum();
         
+        logger.debug("Tiempo total calculado para solicitud ID: {}: {} horas", solicitudId, tiempoTotalHoras);
+        
         // 8. Actualizar la solicitud
         solicitud.setEstado("ENTREGADA");
         solicitud.setCostoFinal(costoTotal);
@@ -404,6 +422,9 @@ public class SolicitudService {
         
         // 9. Guardar y retornar el DTO
         Solicitud solicitudGuardada = solicitudRepository.save(solicitud);
+        logger.info("Solicitud ID: {} finalizada exitosamente. Estado: ENTREGADA, Costo Final: ${}, Tiempo Real: {} horas",
+                   solicitudId, costoTotal, tiempoTotalHoras);
+        
         return Optional.of(solicitudMapper.toDTO(solicitudGuardada));
     }
     
