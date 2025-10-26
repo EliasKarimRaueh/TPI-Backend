@@ -2,6 +2,7 @@ package utn.frc.isi.backend.tpi_Integrador.services;
 
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import utn.frc.isi.backend.tpi_Integrador.dtos.CamionCreateDTO;
 import utn.frc.isi.backend.tpi_Integrador.dtos.CamionDTO;
 import utn.frc.isi.backend.tpi_Integrador.dtos.CamionUpdateDTO;
@@ -94,6 +95,24 @@ public class CamionService {
                 .collect(Collectors.toList());
     }
     
-    // Aquí se podrían agregar más métodos de negocio en el futuro,
-    // como actualizarDisponibilidad(Long id, boolean disponible), etc.
+    /**
+     * Actualiza la disponibilidad de un camión
+     * Usado cuando servicio-operaciones libera un camión al finalizar un tramo
+     * 
+     * @param id ID del camión a actualizar
+     * @param disponible true para marcar como disponible, false para ocupado
+     * @return Optional con CamionDTO actualizado, o vacío si no se encuentra
+     */
+    @Transactional
+    public Optional<CamionDTO> actualizarDisponibilidad(Long id, boolean disponible) {
+        Optional<Camion> camionOpt = camionRepository.findById(id);
+        if (camionOpt.isPresent()) {
+            Camion camion = camionOpt.get();
+            camion.setDisponible(disponible);
+            Camion camionGuardado = camionRepository.save(camion);
+            return Optional.of(camionMapper.toDTO(camionGuardado));
+        } else {
+            return Optional.empty(); // Camión no encontrado
+        }
+    }
 }

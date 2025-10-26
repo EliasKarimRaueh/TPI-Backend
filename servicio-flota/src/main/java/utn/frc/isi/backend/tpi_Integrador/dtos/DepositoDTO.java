@@ -17,5 +17,4 @@ public class DepositoDTO {
     private String direccion;
     private double latitud;
     private double longitud;
-    private double costoEstadiaDiaria;
 }

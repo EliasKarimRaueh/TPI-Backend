@@ -28,6 +28,10 @@ public class TarifaCreateDTO {
     @NotNull(message = "El cargo de gestión por tramo es requerido")
     @Positive(message = "El cargo de gestión por tramo debe ser positivo")
     private double cargoGestionPorTramo;
+    
+    @NotNull(message = "El costo de estadía diaria es requerido")
+    @Positive(message = "El costo de estadía diaria debe ser positivo")
+    private double costoEstadiaDiaria;
 
     @NotNull(message = "La fecha de vigencia desde es requerida")
     private LocalDateTime vigenciaDesde;

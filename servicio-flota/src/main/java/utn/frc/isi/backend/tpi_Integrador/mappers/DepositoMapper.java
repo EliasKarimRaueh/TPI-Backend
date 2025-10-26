@@ -21,7 +21,6 @@ public class DepositoMapper {
         deposito.setDireccion(dto.getDireccion());
         deposito.setLatitud(dto.getLatitud());
         deposito.setLongitud(dto.getLongitud());
-        deposito.setCostoEstadiaDiaria(dto.getCostoEstadiaDiaria());
         return deposito;
     }
     
@@ -35,7 +34,6 @@ public class DepositoMapper {
         dto.setDireccion(entity.getDireccion());
         dto.setLatitud(entity.getLatitud());
         dto.setLongitud(entity.getLongitud());
-        dto.setCostoEstadiaDiaria(entity.getCostoEstadiaDiaria());
         return dto;
     }
     
@@ -55,9 +53,6 @@ public class DepositoMapper {
         }
         if (dto.getLongitud() != null) {
             entity.setLongitud(dto.getLongitud());
-        }
-        if (dto.getCostoEstadiaDiaria() != null) {
-            entity.setCostoEstadiaDiaria(dto.getCostoEstadiaDiaria());
         }
     }
 }

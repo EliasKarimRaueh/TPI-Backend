@@ -22,6 +22,7 @@ public class TarifaMapper {
         tarifa.setCostoKmBase(createDTO.getCostoKmBase());
         tarifa.setPrecioLitroCombustible(createDTO.getPrecioLitroCombustible());
         tarifa.setCargoGestionPorTramo(createDTO.getCargoGestionPorTramo());
+        tarifa.setCostoEstadiaDiaria(createDTO.getCostoEstadiaDiaria());
         tarifa.setVigenciaDesde(createDTO.getVigenciaDesde() != null ? 
                                createDTO.getVigenciaDesde() : LocalDateTime.now());
         tarifa.setActiva(true); // Por defecto nueva tarifa es activa
@@ -37,6 +38,7 @@ public class TarifaMapper {
             tarifa.getCostoKmBase(),
             tarifa.getPrecioLitroCombustible(),
             tarifa.getCargoGestionPorTramo(),
+            tarifa.getCostoEstadiaDiaria(),
             tarifa.getVigenciaDesde(),
             tarifa.getVigenciaHasta(),
             tarifa.isActiva()
@@ -54,6 +56,10 @@ public class TarifaMapper {
         
         if (updateDTO.getCargoGestionPorTramo() != null && updateDTO.getCargoGestionPorTramo() > 0) {
             tarifa.setCargoGestionPorTramo(updateDTO.getCargoGestionPorTramo());
+        }
+        
+        if (updateDTO.getCostoEstadiaDiaria() != null && updateDTO.getCostoEstadiaDiaria() > 0) {
+            tarifa.setCostoEstadiaDiaria(updateDTO.getCostoEstadiaDiaria());
         }
         
         if (updateDTO.getVigenciaHasta() != null) {

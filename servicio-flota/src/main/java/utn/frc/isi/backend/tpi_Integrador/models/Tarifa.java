@@ -26,6 +26,9 @@ public class Tarifa {
 
     @Column(nullable = false)
     private double cargoGestionPorTramo;
+    
+    @Column(nullable = false)
+    private double costoEstadiaDiaria;
 
     @Column(nullable = false)
     private LocalDateTime vigenciaDesde;
@@ -37,10 +40,12 @@ public class Tarifa {
 
     // Constructor para creación con parámetros básicos
     public Tarifa(double costoKmBase, double precioLitroCombustible, 
-                  double cargoGestionPorTramo, LocalDateTime vigenciaDesde) {
+                  double cargoGestionPorTramo, double costoEstadiaDiaria,
+                  LocalDateTime vigenciaDesde) {
         this.costoKmBase = costoKmBase;
         this.precioLitroCombustible = precioLitroCombustible;
         this.cargoGestionPorTramo = cargoGestionPorTramo;
+        this.costoEstadiaDiaria = costoEstadiaDiaria;
         this.vigenciaDesde = vigenciaDesde;
         this.activa = true;
     }

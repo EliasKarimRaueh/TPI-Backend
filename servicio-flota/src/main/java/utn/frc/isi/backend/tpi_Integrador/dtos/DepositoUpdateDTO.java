@@ -1,6 +1,5 @@
 package utn.frc.isi.backend.tpi_Integrador.dtos;
 
-import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -21,7 +20,4 @@ public class DepositoUpdateDTO {
     private Double latitud;
     
     private Double longitud;
-    
-    @Positive(message = "El costo de estadía diaria debe ser positivo")
-    private Double costoEstadiaDiaria;
 }

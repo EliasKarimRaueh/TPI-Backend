@@ -21,6 +21,4 @@ public class Deposito {
     private double latitud; // Coordenada de latitud para geolocalización
 
     private double longitud; // Coordenada de longitud para geolocalización
-
-    private double costoEstadiaDiaria; // Costo por día de estadía en el depósito
 }

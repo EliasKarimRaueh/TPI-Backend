@@ -19,6 +19,7 @@ public class TarifaDTO {
     private double costoKmBase;
     private double precioLitroCombustible;
     private double cargoGestionPorTramo;
+    private double costoEstadiaDiaria;
     private LocalDateTime vigenciaDesde;
     private LocalDateTime vigenciaHasta;
     private boolean activa;
@@ -32,6 +33,7 @@ public class TarifaDTO {
             tarifa.getCostoKmBase(),
             tarifa.getPrecioLitroCombustible(),
             tarifa.getCargoGestionPorTramo(),
+            tarifa.getCostoEstadiaDiaria(),
             tarifa.getVigenciaDesde(),
             tarifa.getVigenciaHasta(),
             tarifa.isActiva()

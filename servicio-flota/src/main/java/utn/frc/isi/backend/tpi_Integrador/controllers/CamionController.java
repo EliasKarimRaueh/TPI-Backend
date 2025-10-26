@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.*;
 import utn.frc.isi.backend.tpi_Integrador.dtos.CamionCreateDTO;
 import utn.frc.isi.backend.tpi_Integrador.dtos.CamionDTO;
 import utn.frc.isi.backend.tpi_Integrador.dtos.CamionUpdateDTO;
+import utn.frc.isi.backend.tpi_Integrador.dtos.DisponibilidadDTO;
 import utn.frc.isi.backend.tpi_Integrador.services.CamionService;
 
 import java.util.List;
@@ -72,5 +73,24 @@ public class CamionController {
     public ResponseEntity<Void> eliminarCamion(@PathVariable Long id) {
         camionService.eliminarCamion(id);
         return ResponseEntity.noContent().build();
+    }
+    
+    /**
+     * PATCH /api/camiones/{id}/disponibilidad
+     * Actualiza la disponibilidad de un camión
+     * Usado por servicio-operaciones para liberar camiones al finalizar tramos
+     * 
+     * @param id ID del camión a actualizar
+     * @param disponibilidadDTO DTO con el nuevo estado de disponibilidad
+     * @return CamionDTO actualizado (200) o Not Found (404)
+     */
+    @PatchMapping("/{id}/disponibilidad")
+    public ResponseEntity<CamionDTO> actualizarDisponibilidadCamion(
+            @PathVariable Long id,
+            @Valid @RequestBody DisponibilidadDTO disponibilidadDTO) {
+
+        return camionService.actualizarDisponibilidad(id, disponibilidadDTO.getDisponible())
+                .map(ResponseEntity::ok) // Si el servicio devuelve el DTO, responde 200 OK
+                .orElseGet(() -> ResponseEntity.notFound().build()); // Si devuelve Optional vacío, responde 404
     }
 }

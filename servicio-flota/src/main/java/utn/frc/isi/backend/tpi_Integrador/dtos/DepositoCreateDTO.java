@@ -2,7 +2,6 @@ package utn.frc.isi.backend.tpi_Integrador.dtos;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -26,8 +25,4 @@ public class DepositoCreateDTO {
     
     @NotNull(message = "La longitud es obligatoria")
     private Double longitud;
-    
-    @NotNull(message = "El costo de estadía diaria es obligatorio")
-    @Positive(message = "El costo de estadía diaria debe ser positivo")
-    private Double costoEstadiaDiaria;
 }

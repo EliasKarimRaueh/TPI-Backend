@@ -21,9 +21,20 @@ VALUES ('IJ789KL', 'Expreso Córdoba', '+54 351 9876543', 5000.0, 35.0, 0.22, tr
 -- DEPÓSITOS
 -- ============================================
 -- Depósito 1: Córdoba Capital
-INSERT INTO deposito (nombre, direccion, latitud, longitud, costo_estadia_diaria) 
-VALUES ('Depósito Central Córdoba', 'Av. Circunvalación 1500, Córdoba, Argentina', -31.4201, -64.1888, 250.0);
+INSERT INTO deposito (nombre, direccion, latitud, longitud) 
+VALUES ('Depósito Central Córdoba', 'Av. Circunvalación 1500, Córdoba, Argentina', -31.4201, -64.1888);
 
 -- Depósito 2: Rosario
-INSERT INTO deposito (nombre, direccion, latitud, longitud, costo_estadia_diaria) 
-VALUES ('Depósito Rosario Norte', 'Ruta Nacional 9 Km 305, Rosario, Santa Fe, Argentina', -32.9442, -60.6505, 300.0);
+INSERT INTO deposito (nombre, direccion, latitud, longitud) 
+VALUES ('Depósito Rosario Norte', 'Ruta Nacional 9 Km 305, Rosario, Santa Fe, Argentina', -32.9442, -60.6505);
+
+-- ============================================
+-- TARIFAS
+-- ============================================
+-- Tarifa 1: Activa - Vigente desde 2024
+INSERT INTO tarifas (costo_km_base, precio_litro_combustible, cargo_gestion_por_tramo, costo_estadia_diaria, vigencia_desde, vigencia_hasta, activa) 
+VALUES (100.0, 850.0, 5000.0, 2500.0, '2024-01-01 00:00:00', NULL, true);
+
+-- Tarifa 2: Inactiva - Tarifa antigua (ejemplo histórico)
+INSERT INTO tarifas (costo_km_base, precio_litro_combustible, cargo_gestion_por_tramo, costo_estadia_diaria, vigencia_desde, vigencia_hasta, activa) 
+VALUES (80.0, 700.0, 4000.0, 2000.0, '2023-01-01 00:00:00', '2023-12-31 23:59:59', false);
