@@ -76,7 +76,7 @@ public class TramoService {
         List<String> estadosExcluidos = Arrays.asList("FINALIZADO");
         
         // Busca tramos asignados al camión que no estén finalizados
-        List<Tramo> tramos = tramoRepository.findByCamionReference_CamionIdAndEstadoNotIn(
+        List<Tramo> tramos = tramoRepository.findByCamionReference_IdAndEstadoNotIn(
             camionId, 
             estadosExcluidos
         );

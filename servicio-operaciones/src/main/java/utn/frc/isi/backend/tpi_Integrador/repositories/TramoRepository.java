@@ -35,5 +35,5 @@ public interface TramoRepository extends JpaRepository<Tramo, Long> {
      * @param estados Lista de estados a excluir (típicamente "FINALIZADO")
      * @return Lista de tramos asignados al camión que no están en los estados excluidos
      */
-    List<Tramo> findByCamionReference_CamionIdAndEstadoNotIn(Long camionId, List<String> estados);
+    List<Tramo> findByCamionReference_IdAndEstadoNotIn(Long camionId, List<String> estados);
 }

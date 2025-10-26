@@ -298,7 +298,7 @@ ContenedorPendienteDTO {
 | **GET** | `/solicitudes/{id}` | Cliente, Operador | Obtener solicitud por ID | `id: Long` | `SolicitudDTO` | 200, 404 | ✅ Implementado |
 | **GET** | `/solicitudes/{id}/estado` | Cliente | **[RF#2]** Consultar estado del transporte | `id: Long` | `SolicitudEstadoDTO` | 200, 404 | ✅ Implementado |
 | **PUT** | `/solicitudes/{id}/estado` | Operador, Sistema | Actualizar estado de solicitud | `id: Long`, `EstadoUpdateDTO` (body) | `SolicitudDTO` | 200, 404, 400 | 🟡 Pendiente (Lógica) |
-| **PATCH** | `/solicitudes/{id}/finalizar` | Sistema | **[RF#10]** Registrar costos y tiempos finales | `id: Long`, `FinalizacionDTO` (body) | `SolicitudDTO` | 200, 404 | 🟡 Pendiente (Lógica) |
+| **PATCH** | `/solicitudes/{id}/finalizar` | Sistema | **[RF#9]** Registrar costos y tiempos finales | `id: Long`, `FinalizacionDTO` (body) | `SolicitudDTO` | 200, 404, 400 | ✅ **Implementado** |
 
 #### DTOs - Solicitudes *(🟡 Pendiente - Lógica)*
 
@@ -452,7 +452,7 @@ RutaDTO {
 | **POST** | `/tramos/{id}/asignar-camion` | Operador | **[RF#6]** Asignar camión a tramo | `id: Long`, `AsignacionCamionDTO` (body) | `TramoDTO` | 200, 400, 404 | ✅ Implementado |
 | **POST** | `/tramos/{id}/iniciar` | Transportista | **[RF#8]** Registrar inicio de tramo | `id: Long` | `TramoDTO` | 200, 400, 404 | ✅ Implementado |
 | **POST** | `/tramos/{id}/finalizar` | Transportista | **[RF#8]** Registrar fin de tramo + Cálculo de costo real | `id: Long` | `TramoDTO` | 200, 400, 404 | ✅ **Implementado con FlotaServiceClient** |
-| **GET** | `/transportistas/{id}/tramos` | Transportista | Ver tramos asignados a transportista | `id: Long` | `List<TramoDTO>` | 200 | 🟡 Pendiente (Lógica) |
+| **GET** | `/tramos/transportistas/{camionId}/tramos` | Transportista | **[RF#7]** Ver tramos asignados a transportista | `camionId: Long` | `List<TramoDTO>` | 200, 404 | ✅ **Implementado** |
 
 #### DTOs - Tramos *(✅ Implementado)*
 
@@ -655,14 +655,18 @@ Según **Enunciado - Requerimientos Funcionales Mínimos**:
 | **RF#6** | Asignar camión a tramo | `POST /tramos/{id}/asignar-camion` | Operaciones | ✅ **Implementado** |
 | **RF#7** | Determinar inicio/fin de tramo | `POST /tramos/{id}/iniciar`<br>`POST /tramos/{id}/finalizar` | Operaciones | ✅ **Implementado** (RF#8) |
 | **RF#8** | Calcular costo total del tramo | Lógica interna en `POST /tramos/{id}/finalizar` | Operaciones | ✅ **Implementado con FlotaServiceClient** |
-| **RF#9** | Registrar costo/tiempo final | `PATCH /solicitudes/{id}/finalizar` | Operaciones | 🟡 Pendiente |
-| **RF#10** | Registrar/actualizar depósitos, camiones, tarifas | `POST/PUT/DELETE /camiones`<br>`POST/PUT/DELETE /depositos`<br>`POST/PUT /tarifas` | Flota | 🟡 Pendiente |
+| **RF#9** | Registrar costo/tiempo final | `PATCH /solicitudes/{id}/finalizar` | Operaciones | ✅ **Implementado** |
+| **RF#10** | Registrar/actualizar depósitos, camiones, tarifas | `POST/PUT/DELETE /camiones`<br>`POST/PUT/DELETE /depositos`<br>`POST/PUT /tarifas` | Flota | ✅ **Implementado** |
 | **RF#11** | Validar capacidad de camión | Lógica interna en asignación | Operaciones | ✅ **Implementado** (RF#6) |
 
-**Nota**: 
-- **RF#7** se implementó con endpoints `POST /tramos/{id}/iniciar` y `POST /tramos/{id}/finalizar`
-- **RF#8** se implementó como lógica interna dentro de `finalizarTramo()`:
-  - Obtiene la **tarifa activa** desde servicio-flota (`GET /api/tarifas/actual`)
+**Notas de Implementación**: 
+
+- **RF#7** se implementó con dos funcionalidades:
+  1. Endpoints: `POST /tramos/{id}/iniciar` y `POST /tramos/{id}/finalizar`
+  2. Consulta de tramos: `GET /tramos/transportistas/{camionId}/tramos`
+
+- **RF#8** (Cálculo de costos) se implementó como lógica interna en `finalizarTramo()`:
+  - Obtiene la **tarifa activa** desde servicio-flota (`GET /api/tarifas/activa`)
   - Obtiene los **datos del camión** desde servicio-flota (`GET /api/camiones/{id}`)
   - Calcula el **costo real** con la fórmula:
     ```
@@ -670,6 +674,15 @@ Según **Enunciado - Requerimientos Funcionales Mínimos**:
     ```
   - Almacena el resultado en el campo `costoReal` del tramo
   - Utiliza `FlotaServiceClient` para comunicación entre microservicios
+  - **Logging comprehensivo** en cada paso del cálculo
+
+- **RF#9** (Finalización de solicitud) se implementó en `SolicitudService.finalizarSolicitud()`:
+  - Valida que todos los tramos estén FINALIZADOS
+  - Calcula **costo total** sumando `costoReal` de todos los tramos
+  - Calcula **tiempo real total** con `Duration.between(fechaRealInicio, fechaRealFin)`
+  - Actualiza: `solicitud.costoFinal`, `solicitud.tiempoReal`, `solicitud.estado = "ENTREGADA"`
+  - **Logging detallado** con DEBUG para valores calculados
+  - Endpoint: `PATCH /api/solicitudes/{id}/finalizar`
 
 ---
 
@@ -699,7 +712,216 @@ Según **Enunciado - Requerimientos Funcionales Mínimos**:
 
 ---
 
-## 📝 Notas Adicionales
+## � Mejoras Implementadas en Esta Sesión
+
+### 📊 Logging SLF4J Comprehensivo
+
+**Estado**: ✅ **Completamente Implementado**
+
+Se agregó logging profesional usando SLF4J en **todos los servicios** de ambos microservicios:
+
+#### Servicio-Flota (3 servicios):
+1. **CamionService**: 7 métodos con logging
+2. **DepositoService**: 5 métodos con logging  
+3. **TarifaService**: 13 métodos con logging
+
+#### Servicio-Operaciones (5 servicios):
+1. **ClienteService**: 5 métodos con logging
+2. **ContenedorService**: 7 métodos con logging (incluyendo RF#2, RF#5)
+3. **RutaService**: 5 métodos con logging (incluyendo RF#3 con Google Maps)
+4. **SolicitudService**: Logging comprehensivo en `finalizarSolicitud()` (RF#9)
+5. **TramoService**: Ya tenía logger implementado
+
+**Patrón de Logging Utilizado**:
+```java
+private static final Logger logger = LoggerFactory.getLogger(NombreClase.class);
+
+// INFO: Operaciones exitosas con contadores
+logger.info("Obteniendo todos los camiones");
+logger.info("Se encontraron {} camiones", camiones.size());
+
+// WARN: Recursos no encontrados
+logger.warn("Camión no encontrado con ID: {}", id);
+
+// ERROR: Errores y excepciones con contexto
+logger.error("Error al asignar ruta a solicitud {}: {}", solicitudId, e.getMessage());
+
+// DEBUG: Valores calculados y detalles
+logger.debug("Costo total calculado: {}, Tiempo total: {}", costoTotal, tiempoTotal);
+```
+
+### 💰 RF#9: Finalización de Solicitudes - IMPLEMENTADO
+
+**Endpoint**: `PATCH /api/solicitudes/{id}/finalizar`
+
+**Funcionalidad Completa**:
+1. ✅ Valida que la solicitud existe y está EN_TRANSITO
+2. ✅ Valida que tiene ruta asignada con tramos
+3. ✅ Valida que TODOS los tramos estén FINALIZADOS
+4. ✅ Calcula el **costo total** sumando `costoReal` de todos los tramos
+5. ✅ Calcula el **tiempo real total** usando `Duration.between(fechaRealInicio, fechaRealFin)`
+6. ✅ Actualiza: `costoFinal`, `tiempoReal`, `estado = "ENTREGADA"`
+7. ✅ Logging comprehensivo en cada paso del proceso
+
+**Método Implementado en SolicitudService**:
+```java
+public SolicitudDTO finalizarSolicitud(Long solicitudId, FinalizacionSolicitudDTO finalizacionDTO) {
+    logger.info("Iniciando finalización de solicitud con ID: {}", solicitudId);
+    
+    // Validación de solicitud
+    Solicitud solicitud = solicitudRepository.findById(solicitudId)
+        .orElseThrow(() -> {
+            logger.warn("Solicitud no encontrada con ID: {}", solicitudId);
+            return new RuntimeException("Solicitud no encontrada");
+        });
+    
+    // Validación de estado
+    if (!"EN_TRANSITO".equals(solicitud.getEstado())) {
+        logger.error("La solicitud {} no está EN_TRANSITO", solicitudId);
+        throw new IllegalStateException("Solo se pueden finalizar solicitudes EN_TRANSITO");
+    }
+    
+    // Validación de ruta y tramos
+    Ruta ruta = solicitud.getRuta();
+    if (ruta == null || ruta.getTramos().isEmpty()) {
+        logger.error("La solicitud {} no tiene ruta o tramos asignados", solicitudId);
+        throw new IllegalStateException("La solicitud no tiene ruta asignada");
+    }
+    
+    // Validación de tramos finalizados
+    boolean todosFinalizados = ruta.getTramos().stream()
+        .allMatch(t -> "FINALIZADO".equals(t.getEstado()));
+    
+    if (!todosFinalizados) {
+        logger.error("No todos los tramos están finalizados para solicitud {}", solicitudId);
+        throw new IllegalStateException("Todos los tramos deben estar finalizados");
+    }
+    
+    // Cálculo de costo total
+    double costoTotal = ruta.getTramos().stream()
+        .mapToDouble(t -> t.getCostoReal() != null ? t.getCostoReal() : 0.0)
+        .sum();
+    
+    // Cálculo de tiempo real total
+    LocalDateTime fechaRealInicio = ruta.getTramos().stream()
+        .map(Tramo::getFechaRealInicio)
+        .filter(Objects::nonNull)
+        .min(LocalDateTime::compareTo)
+        .orElse(null);
+    
+    LocalDateTime fechaRealFin = ruta.getTramos().stream()
+        .map(Tramo::getFechaRealFin)
+        .filter(Objects::nonNull)
+        .max(LocalDateTime::compareTo)
+        .orElse(null);
+    
+    double tiempoTotalHoras = 0.0;
+    if (fechaRealInicio != null && fechaRealFin != null) {
+        Duration duracion = Duration.between(fechaRealInicio, fechaRealFin);
+        tiempoTotalHoras = duracion.toMinutes() / 60.0;
+    }
+    
+    logger.debug("Cálculos para solicitud {}: {} tramos, costoTotal={}, tiempoTotal={} horas",
+        solicitudId, ruta.getTramos().size(), costoTotal, tiempoTotalHoras);
+    
+    // Actualizar solicitud
+    solicitud.setCostoFinal(costoTotal);
+    solicitud.setTiempoReal(tiempoTotalHoras);
+    solicitud.setEstado("ENTREGADA");
+    
+    if (finalizacionDTO != null && finalizacionDTO.getObservaciones() != null) {
+        solicitud.setObservaciones(
+            solicitud.getObservaciones() + "\n" + finalizacionDTO.getObservaciones()
+        );
+    }
+    
+    Solicitud solicitudFinalizada = solicitudRepository.save(solicitud);
+    
+    logger.info("Solicitud {} finalizada exitosamente. Estado: ENTREGADA, Costo: ${}, Tiempo: {} horas",
+        solicitudId, costoTotal, tiempoTotalHoras);
+    
+    return solicitudMapper.toDTO(solicitudFinalizada);
+}
+```
+
+### 🧪 Scripts de Prueba End-to-End
+
+**Estado**: ✅ **Implementados y Documentados**
+
+Se crearon 3 herramientas de testing:
+
+1. **test-e2e-flow.http** (REST Client para VS Code)
+   - 22 pasos detallados
+   - Formato `.http` para extensión REST Client
+   - Variables para capturar IDs
+   - Prueba flujo completo: RF#1, RF#2, RF#3, RF#6, RF#7, RF#8, RF#9
+
+2. **test-e2e-flow.sh** (Bash automatizado)
+   - Script completamente automatizado
+   - Captura automática de IDs con `jq`
+   - Output con colores
+   - Resumen final con estadísticas
+
+3. **test-e2e-simple.ps1** (PowerShell)
+   - Script Windows automatizado
+   - 7 pasos principales
+   - Manejo de errores
+   - Resumen final detallado
+
+4. **demo-rutas.txt** (Comandos rápidos)
+   - Comando único para demostrar RF#3
+   - Ejemplos de todas las funcionalidades
+   - Listo para copy-paste
+
+### 🐛 Correcciones de Bugs
+
+**Bug Crítico Corregido**: Error en `TramoRepository`
+
+**Problema Original**:
+```java
+// ❌ INCORRECTO - CamionReference no tiene campo 'camionId'
+List<Tramo> findByCamionReference_CamionIdAndEstadoNotIn(Long camionId, List<String> estados);
+```
+
+**Solución Implementada**:
+```java
+// ✅ CORRECTO - CamionReference tiene campo 'id'
+List<Tramo> findByCamionReference_IdAndEstadoNotIn(Long camionId, List<String> estados);
+```
+
+**Archivos Corregidos**:
+- `servicio-operaciones/repositories/TramoRepository.java`
+- `servicio-operaciones/services/TramoService.java`
+
+**Resultado**: ✅ Ambos microservicios compilan exitosamente (BUILD SUCCESS)
+
+### 📚 Documentación Actualizada
+
+**Archivos Creados/Actualizados**:
+1. ✅ `Endpoints-Documentacion.md` - Este archivo (actualizado)
+2. ✅ `test-e2e-flow.http` - Pruebas REST Client
+3. ✅ `test-e2e-flow.sh` - Script Bash automatizado
+4. ✅ `test-e2e-simple.ps1` - Script PowerShell
+5. ✅ `demo-rutas.txt` - Comandos de demostración
+
+### 🎯 Estado Final de Requerimientos Funcionales
+
+| RF# | Descripción | Estado | Evidencia |
+|-----|-------------|--------|-----------|
+| RF#1 | Registrar solicitud | ✅ | POST /api/solicitudes |
+| RF#2 | Consultar estado | ✅ | GET /api/contenedores/{id}/estado<br>GET /api/solicitudes/{id}/estado |
+| RF#3 | Rutas tentativas | ✅ | GET /api/solicitudes/{id}/rutas/tentativas<br>Google Maps API integrada |
+| RF#4 | Asignar ruta | ✅ | POST /api/solicitudes/{id}/asignar-ruta |
+| RF#5 | Contenedores pendientes | ✅ | GET /api/contenedores/pendientes |
+| RF#6 | Asignar camión | ✅ | POST /api/tramos/{id}/asignar-camion |
+| RF#7 | Tramos transportista | ✅ | GET /api/tramos/transportistas/{id}/tramos |
+| RF#8 | Iniciar/Finalizar tramo | ✅ | POST /api/tramos/{id}/iniciar<br>POST /api/tramos/{id}/finalizar |
+| RF#9 | Finalizar solicitud | ✅ | PATCH /api/solicitudes/{id}/finalizar |
+| RF#10 | Gestión recursos | ✅ | CRUD Camiones, Depósitos, Tarifas |
+
+**Cobertura de Logging**: 100% de los servicios tienen logging SLF4J
+
+## �📝 Notas Adicionales
 
 ### Validaciones Importantes:
 
@@ -722,10 +944,18 @@ Según **Enunciado - Requerimientos Funcionales Mínimos**:
 
 4. **Al finalizar tramo**:
    - Validar que estado sea "INICIADO"
-   - Calcular costo real del tramo
+   - Calcular costo real del tramo usando FlotaServiceClient
+   - Fórmula: `costoReal = cargoGestion + (costoPorKm × distanciaKm) + (consumoCombustible × distanciaKm × precioCombustible)`
    - Cambiar estado a "FINALIZADO"
    - Marcar camión como disponible
-   - Si es el último tramo, finalizar solicitud
+   - Actualizar estado del contenedor a "ENTREGADO"
+
+5. **Al finalizar solicitud (RF#9)**:
+   - Validar que todos los tramos estén FINALIZADOS
+   - Calcular costo total sumando `costoReal` de todos los tramos
+   - Calcular tiempo real total con `Duration.between()`
+   - Actualizar: `costoFinal`, `tiempoReal`, `estado = "ENTREGADA"`
+   - Logging comprehensivo de todo el proceso
 
 ### Comunicación entre Microservicios:
 
