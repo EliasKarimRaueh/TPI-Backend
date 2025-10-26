@@ -3,6 +3,7 @@ package utn.frc.isi.backend.tpi_Integrador.controllers;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import utn.frc.isi.backend.tpi_Integrador.dtos.FinalizacionSolicitudDTO;
 import utn.frc.isi.backend.tpi_Integrador.dtos.RutaCreateDTO;
 import utn.frc.isi.backend.tpi_Integrador.dtos.RutaDTO;
 import utn.frc.isi.backend.tpi_Integrador.dtos.RutaTentativaDTO;
@@ -132,6 +133,32 @@ public class SolicitudController {
         } catch (RuntimeException e) {
             // Si la solicitud no existe
             return ResponseEntity.notFound().build();
+        }
+    }
+    
+    /**
+     * RF#9: PATCH /api/solicitudes/{id}/finalizar
+     * Finaliza una solicitud calculando el costo total y tiempo real
+     * Solo se puede finalizar si todos los tramos están FINALIZADOS
+     * 
+     * @param id ID de la solicitud a finalizar
+     * @param finalizacionDTO DTO opcional con observaciones finales
+     * @return Solicitud actualizada (200) o error (404/400)
+     */
+    @PatchMapping("/{id}/finalizar")
+    public ResponseEntity<SolicitudDTO> finalizarSolicitud(
+            @PathVariable Long id,
+            @RequestBody(required = false) @Valid FinalizacionSolicitudDTO finalizacionDTO) {
+        try {
+            return solicitudService.finalizarSolicitud(id)
+                    .map(ResponseEntity::ok)
+                    .orElseGet(() -> ResponseEntity.notFound().build());
+        } catch (IllegalStateException e) {
+            // Error de validación (estado incorrecto, tramos pendientes, etc.)
+            return ResponseEntity.badRequest().build();
+        } catch (Exception e) {
+            // Otros errores
+            return ResponseEntity.internalServerError().build();
         }
     }
 }

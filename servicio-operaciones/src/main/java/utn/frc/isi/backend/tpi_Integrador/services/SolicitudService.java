@@ -14,12 +14,15 @@ import utn.frc.isi.backend.tpi_Integrador.models.Cliente;
 import utn.frc.isi.backend.tpi_Integrador.models.Contenedor;
 import utn.frc.isi.backend.tpi_Integrador.models.Solicitud;
 import utn.frc.isi.backend.tpi_Integrador.models.Ruta;
+import utn.frc.isi.backend.tpi_Integrador.models.Tramo;
 import utn.frc.isi.backend.tpi_Integrador.repositories.SolicitudRepository;
 import utn.frc.isi.backend.tpi_Integrador.repositories.ClienteRepository;
 import utn.frc.isi.backend.tpi_Integrador.repositories.ContenedorRepository;
 import utn.frc.isi.backend.tpi_Integrador.repositories.RutaRepository;
+import utn.frc.isi.backend.tpi_Integrador.repositories.TramoRepository;
 
 import java.time.LocalDateTime;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -35,6 +38,7 @@ public class SolicitudService {
     private final ClienteRepository clienteRepository;
     private final ContenedorRepository contenedorRepository;
     private final RutaRepository rutaRepository;
+    private final TramoRepository tramoRepository;
     private final SolicitudMapper solicitudMapper;
     private final RutaMapper rutaMapper;
 
@@ -45,6 +49,7 @@ public class SolicitudService {
                           ClienteRepository clienteRepository,
                           ContenedorRepository contenedorRepository,
                           RutaRepository rutaRepository,
+                          TramoRepository tramoRepository,
                           SolicitudMapper solicitudMapper,
                           RutaMapper rutaMapper) {
         this.solicitudRepository = solicitudRepository;
@@ -53,6 +58,7 @@ public class SolicitudService {
         this.clienteRepository = clienteRepository;
         this.contenedorRepository = contenedorRepository;
         this.rutaRepository = rutaRepository;
+        this.tramoRepository = tramoRepository;
         this.solicitudMapper = solicitudMapper;
         this.rutaMapper = rutaMapper;
     }
@@ -297,6 +303,91 @@ public class SolicitudService {
             default:
                 return "No disponible";
         }
+    }
+    
+    /**
+     * RF#9: Finaliza una solicitud calculando el costo total y tiempo real
+     * Solo se puede finalizar si todos los tramos están en estado FINALIZADO
+     * 
+     * @param solicitudId ID de la solicitud a finalizar
+     * @return Optional con el SolicitudDTO actualizado, vacío si no se encuentra
+     * @throws IllegalStateException si la solicitud no está EN_TRANSITO o si hay tramos pendientes
+     */
+    @Transactional
+    public Optional<SolicitudDTO> finalizarSolicitud(Long solicitudId) {
+        // 1. Buscar la solicitud
+        Optional<Solicitud> optionalSolicitud = solicitudRepository.findById(solicitudId);
+        if (optionalSolicitud.isEmpty()) {
+            return Optional.empty();
+        }
+        
+        Solicitud solicitud = optionalSolicitud.get();
+        
+        // 2. Validar que la solicitud esté EN_TRANSITO
+        if (!"EN_TRANSITO".equals(solicitud.getEstado())) {
+            throw new IllegalStateException(
+                "La solicitud debe estar EN_TRANSITO para poder finalizarse. Estado actual: " + solicitud.getEstado()
+            );
+        }
+        
+        // 3. Obtener la ruta y verificar que exista
+        Ruta ruta = solicitud.getRuta();
+        if (ruta == null) {
+            throw new IllegalStateException("La solicitud no tiene una ruta asignada");
+        }
+        
+        // 4. Obtener todos los tramos de la ruta
+        List<Tramo> tramos = tramoRepository.findByRutaId(ruta.getId());
+        if (tramos.isEmpty()) {
+            throw new IllegalStateException("La ruta no tiene tramos asignados");
+        }
+        
+        // 5. Verificar que TODOS los tramos estén FINALIZADOS
+        List<Tramo> tramosPendientes = tramos.stream()
+            .filter(tramo -> !"FINALIZADO".equals(tramo.getEstado()))
+            .collect(Collectors.toList());
+        
+        if (!tramosPendientes.isEmpty()) {
+            String mensajeError = String.format(
+                "No se puede finalizar la solicitud. Hay %d tramo(s) pendiente(s) de finalizar: %s",
+                tramosPendientes.size(),
+                tramosPendientes.stream()
+                    .map(t -> "Tramo #" + t.getId() + " (estado: " + t.getEstado() + ")")
+                    .collect(Collectors.joining(", "))
+            );
+            throw new IllegalStateException(mensajeError);
+        }
+        
+        // 6. Calcular el costo total sumando el costo real de cada tramo
+        double costoTotal = tramos.stream()
+            .mapToDouble(tramo -> {
+                Double costoReal = tramo.getCostoReal();
+                return costoReal != null ? costoReal : 0.0;
+            })
+            .sum();
+        
+        // 7. Calcular el tiempo total en horas sumando la duración de cada tramo
+        double tiempoTotalHoras = tramos.stream()
+            .mapToDouble(tramo -> {
+                LocalDateTime inicio = tramo.getFechaRealInicio();
+                LocalDateTime fin = tramo.getFechaRealFin();
+                
+                if (inicio != null && fin != null) {
+                    Duration duracion = Duration.between(inicio, fin);
+                    return duracion.toHours() + (duracion.toMinutesPart() / 60.0);
+                }
+                return 0.0;
+            })
+            .sum();
+        
+        // 8. Actualizar la solicitud
+        solicitud.setEstado("ENTREGADA");
+        solicitud.setCostoFinal(costoTotal);
+        solicitud.setTiempoReal(tiempoTotalHoras);
+        
+        // 9. Guardar y retornar el DTO
+        Solicitud solicitudGuardada = solicitudRepository.save(solicitud);
+        return Optional.of(solicitudMapper.toDTO(solicitudGuardada));
     }
     
     // Aquí se podrían agregar más métodos de negocio en el futuro,
