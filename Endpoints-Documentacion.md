@@ -451,7 +451,7 @@ RutaDTO {
 | **GET** | `/tramos/{id}` | Transportista, Operador | Obtener tramo por ID | `id: Long` | `TramoDTO` | 200, 404 | ✅ Implementado |
 | **POST** | `/tramos/{id}/asignar-camion` | Operador | **[RF#6]** Asignar camión a tramo | `id: Long`, `AsignacionCamionDTO` (body) | `TramoDTO` | 200, 400, 404 | ✅ Implementado |
 | **POST** | `/tramos/{id}/iniciar` | Transportista | **[RF#8]** Registrar inicio de tramo | `id: Long` | `TramoDTO` | 200, 400, 404 | ✅ Implementado |
-| **POST** | `/tramos/{id}/finalizar` | Transportista | **[RF#8]** Registrar fin de tramo | `id: Long` | `TramoDTO` | 200, 400, 404 | ✅ Implementado |
+| **POST** | `/tramos/{id}/finalizar` | Transportista | **[RF#8]** Registrar fin de tramo + Cálculo de costo real | `id: Long` | `TramoDTO` | 200, 400, 404 | ✅ **Implementado con FlotaServiceClient** |
 | **GET** | `/transportistas/{id}/tramos` | Transportista | Ver tramos asignados a transportista | `id: Long` | `List<TramoDTO>` | 200 | 🟡 Pendiente (Lógica) |
 
 #### DTOs - Tramos *(✅ Implementado)*
@@ -654,12 +654,22 @@ Según **Enunciado - Requerimientos Funcionales Mínimos**:
 | **RF#5** | Consultar contenedores pendientes | `GET /contenedores/pendientes` | Operaciones | ✅ **Implementado** |
 | **RF#6** | Asignar camión a tramo | `POST /tramos/{id}/asignar-camion` | Operaciones | ✅ **Implementado** |
 | **RF#7** | Determinar inicio/fin de tramo | `POST /tramos/{id}/iniciar`<br>`POST /tramos/{id}/finalizar` | Operaciones | ✅ **Implementado** (RF#8) |
-| **RF#8** | Calcular costo total | `POST /calculos/costo` | Operaciones | 🟡 Pendiente |
+| **RF#8** | Calcular costo total del tramo | Lógica interna en `POST /tramos/{id}/finalizar` | Operaciones | ✅ **Implementado con FlotaServiceClient** |
 | **RF#9** | Registrar costo/tiempo final | `PATCH /solicitudes/{id}/finalizar` | Operaciones | 🟡 Pendiente |
 | **RF#10** | Registrar/actualizar depósitos, camiones, tarifas | `POST/PUT/DELETE /camiones`<br>`POST/PUT/DELETE /depositos`<br>`POST/PUT /tarifas` | Flota | 🟡 Pendiente |
 | **RF#11** | Validar capacidad de camión | Lógica interna en asignación | Operaciones | ✅ **Implementado** (RF#6) |
 
-**Nota**: RF#7 y RF#8 se implementaron bajo el nombre RF#8 en la documentación interna, cumpliendo con la funcionalidad de iniciar/finalizar tramos.
+**Nota**: 
+- **RF#7** se implementó con endpoints `POST /tramos/{id}/iniciar` y `POST /tramos/{id}/finalizar`
+- **RF#8** se implementó como lógica interna dentro de `finalizarTramo()`:
+  - Obtiene la **tarifa activa** desde servicio-flota (`GET /api/tarifas/actual`)
+  - Obtiene los **datos del camión** desde servicio-flota (`GET /api/camiones/{id}`)
+  - Calcula el **costo real** con la fórmula:
+    ```
+    costoReal = cargoGestionPorTramo + (costoPorKm × distanciaKm) + (consumoCombustiblePorKm × distanciaKm × precioLitroCombustible)
+    ```
+  - Almacena el resultado en el campo `costoReal` del tramo
+  - Utiliza `FlotaServiceClient` para comunicación entre microservicios
 
 ---
 

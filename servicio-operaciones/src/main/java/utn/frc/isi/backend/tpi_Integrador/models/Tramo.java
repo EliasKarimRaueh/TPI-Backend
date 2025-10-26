@@ -46,6 +46,8 @@ public class Tramo {
     private LocalDateTime fechaRealInicio; // Fecha real de inicio del tramo
     
     private LocalDateTime fechaRealFin; // Fecha real de finalización del tramo
+    
+    private double costoReal; // Costo real calculado al finalizar el tramo
 
     @ManyToOne
     @JoinColumn(name = "ruta_id") // Así se llamará la columna en la BD

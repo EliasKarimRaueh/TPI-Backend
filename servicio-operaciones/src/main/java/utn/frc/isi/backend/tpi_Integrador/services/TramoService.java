@@ -1,8 +1,13 @@
 package utn.frc.isi.backend.tpi_Integrador.services;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import utn.frc.isi.backend.tpi_Integrador.clients.FlotaServiceClient;
 import utn.frc.isi.backend.tpi_Integrador.dtos.AsignacionCamionDTO;
+import utn.frc.isi.backend.tpi_Integrador.dtos.flota.CamionDTO;
+import utn.frc.isi.backend.tpi_Integrador.dtos.flota.TarifaDTO;
 import utn.frc.isi.backend.tpi_Integrador.models.CamionReference;
 import utn.frc.isi.backend.tpi_Integrador.models.Contenedor;
 import utn.frc.isi.backend.tpi_Integrador.models.Solicitud;
@@ -19,17 +24,25 @@ import java.util.Optional;
 @Service // Marca esta clase como un componente de servicio de Spring
 public class TramoService {
 
+    private static final Logger logger = LoggerFactory.getLogger(TramoService.class);
+
     private final TramoRepository tramoRepository;
     private final CamionReferenceRepository camionReferenceRepository;
     private final SolicitudRepository solicitudRepository;
     private final ContenedorRepository contenedorRepository;
+    private final FlotaServiceClient flotaServiceClient;
 
     // Inyección de dependencias a través del constructor (práctica recomendada)
-    public TramoService(TramoRepository tramoRepository, CamionReferenceRepository camionReferenceRepository, SolicitudRepository solicitudRepository, ContenedorRepository contenedorRepository) {
+    public TramoService(TramoRepository tramoRepository, 
+                        CamionReferenceRepository camionReferenceRepository, 
+                        SolicitudRepository solicitudRepository, 
+                        ContenedorRepository contenedorRepository,
+                        FlotaServiceClient flotaServiceClient) {
         this.tramoRepository = tramoRepository;
         this.camionReferenceRepository = camionReferenceRepository;
         this.solicitudRepository = solicitudRepository;
         this.contenedorRepository = contenedorRepository;
+        this.flotaServiceClient = flotaServiceClient;
     }
 
     public List<Tramo> obtenerTodos() {
@@ -185,10 +198,13 @@ public class TramoService {
     /**
      * Finaliza un tramo de transporte (RF#8)
      * El transportista marca el fin del viaje.
+     * Calcula el costo real del tramo usando datos de servicio-flota:
+     * - Tarifa actual (cargo gestión, precio combustible, costo por km)
+     * - Datos del camión (consumo combustible, costo por km)
      * Actualiza el estado del tramo y, si es el último, del contenedor y solicitud.
      * 
      * @param tramoId ID del tramo a finalizar
-     * @return Tramo actualizado
+     * @return Tramo actualizado con costo real calculado
      */
     @Transactional
     public Tramo finalizarTramo(Long tramoId) {
@@ -201,20 +217,54 @@ public class TramoService {
             throw new RuntimeException("El tramo no está en estado 'INICIADO'. Estado actual: " + tramo.getEstado());
         }
         
-        // 3. Actualizar estado del Tramo
+        // 3. CALCULAR COSTO REAL (RF#8)
+        logger.info("Calculando costo real para tramo ID: {}", tramoId);
+        
+        // 3.1 Obtener tarifa actual desde servicio-flota
+        TarifaDTO tarifa = flotaServiceClient.obtenerTarifaActiva()
+                .orElseThrow(() -> new RuntimeException("No se pudo obtener la tarifa activa desde servicio-flota"));
+        logger.debug("Tarifa obtenida: cargoGestion={}, precioCombustible={}", 
+                    tarifa.getCargoGestionPorTramo(), tarifa.getPrecioLitroCombustible());
+        
+        // 3.2 Obtener datos del camión desde servicio-flota
+        if (tramo.getCamionReference() == null) {
+            throw new RuntimeException("El tramo no tiene un camión asignado");
+        }
+        
+        Long camionId = tramo.getCamionReference().getId();
+        CamionDTO camion = flotaServiceClient.obtenerCamionPorId(camionId)
+                .orElseThrow(() -> new RuntimeException("No se pudo obtener los datos del camión ID: " + camionId));
+        logger.debug("Camión obtenido: consumo={} L/km, costoPorKm={}", 
+                    camion.getConsumoCombustiblePorKm(), camion.getCostoPorKm());
+        
+        // 3.3 Calcular costo real usando la fórmula:
+        // costoReal = cargoGestion + (costoPorKm * distanciaKm) + (consumoCombustible * distanciaKm * precioCombustible)
+        double cargoGestion = tarifa.getCargoGestionPorTramo();
+        double costoPorKm = camion.getCostoPorKm() * tramo.getDistanciaKm();
+        double costoCombustible = camion.getConsumoCombustiblePorKm() * tramo.getDistanciaKm() * tarifa.getPrecioLitroCombustible();
+        
+        double costoReal = cargoGestion + costoPorKm + costoCombustible;
+        
+        logger.info("Costo real calculado para tramo {}: cargo={}, costoPorKm={}, combustible={}, TOTAL={}", 
+                   tramoId, cargoGestion, costoPorKm, costoCombustible, costoReal);
+        
+        // 3.4 Asignar costo real al tramo
+        tramo.setCostoReal(costoReal);
+        
+        // 4. Actualizar estado del Tramo
         tramo.setEstado("FINALIZADO");
         tramo.setFechaRealFin(LocalDateTime.now());
         
-        // 4. Buscar solicitud asociada
+        // 5. Buscar solicitud asociada
         Solicitud solicitud = solicitudRepository.findByRuta(tramo.getRuta())
                 .orElseThrow(() -> new RuntimeException("No se encontró solicitud asociada al tramo"));
         
-        // 5. Verificar si es el último tramo de la ruta
+        // 6. Verificar si es el último tramo de la ruta
         List<Tramo> tramosRuta = tramoRepository.findByRutaOrderByOrdenAsc(tramo.getRuta());
         boolean todosFinalizados = tramosRuta.stream()
                 .allMatch(t -> "FINALIZADO".equals(t.getEstado()) || t.getId().equals(tramoId));
         
-        // 6. Si todos los tramos están finalizados, actualizar contenedor y solicitud
+        // 7. Si todos los tramos están finalizados, actualizar contenedor y solicitud
         if (todosFinalizados) {
             Contenedor contenedor = solicitud.getContenedor();
             contenedor.setEstado("ENTREGADO");
@@ -222,6 +272,8 @@ public class TramoService {
             
             solicitud.setEstado("ENTREGADA");
             solicitudRepository.save(solicitud);
+            
+            logger.info("Ruta completada. Solicitud {} marcada como ENTREGADA", solicitud.getId());
         } else {
             // Si no es el último, marcar contenedor como en depósito intermedio
             Contenedor contenedor = solicitud.getContenedor();
@@ -231,14 +283,15 @@ public class TramoService {
             }
         }
         
-        // 7. Liberar el camión
+        // 8. Liberar el camión
         if (tramo.getCamionReference() != null) {
-            CamionReference camion = tramo.getCamionReference();
-            camion.setDisponible(true);
-            camionReferenceRepository.save(camion);
+            CamionReference camion2 = tramo.getCamionReference();
+            camion2.setDisponible(true);
+            camionReferenceRepository.save(camion2);
+            logger.debug("Camión {} liberado y marcado como disponible", camion2.getDominio());
         }
         
-        // 8. Guardar y retornar el tramo actualizado
+        // 9. Guardar y retornar el tramo actualizado
         return tramoRepository.save(tramo);
     }
     
