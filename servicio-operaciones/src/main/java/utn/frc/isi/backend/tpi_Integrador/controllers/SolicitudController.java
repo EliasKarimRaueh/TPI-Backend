@@ -1,5 +1,11 @@
 package utn.frc.isi.backend.tpi_Integrador.controllers;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,6 +22,7 @@ import utn.frc.isi.backend.tpi_Integrador.services.SolicitudService;
 
 import java.util.List;
 
+@Tag(name = "Solicitudes", description = "API de gestión de solicitudes de transporte y logística")
 @RestController
 @RequestMapping("/api/solicitudes")
 public class SolicitudController {
@@ -28,12 +35,28 @@ public class SolicitudController {
         this.rutaService = rutaService;
     }
 
+    @Operation(summary = "Obtener todas las solicitudes", 
+               description = "Devuelve una lista completa de todas las solicitudes de transporte registradas en el sistema")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Lista de solicitudes devuelta exitosamente",
+                     content = @Content(mediaType = "application/json",
+                     schema = @Schema(implementation = SolicitudDTO.class)))
+    })
     @GetMapping
     public ResponseEntity<List<SolicitudDTO>> obtenerTodas() {
         List<SolicitudDTO> solicitudes = solicitudService.obtenerTodas();
         return ResponseEntity.ok(solicitudes);
     }
 
+    @Operation(summary = "Obtener una solicitud por ID", 
+               description = "Busca y devuelve una solicitud específica mediante su identificador único")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Solicitud encontrada y devuelta",
+                     content = @Content(mediaType = "application/json",
+                     schema = @Schema(implementation = SolicitudDTO.class))),
+        @ApiResponse(responseCode = "404", description = "Solicitud no encontrada",
+                     content = @Content)
+    })
     @GetMapping("/{id}")
     public ResponseEntity<SolicitudDTO> obtenerPorId(@PathVariable Long id) {
         return solicitudService.obtenerPorId(id)
@@ -41,14 +64,15 @@ public class SolicitudController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    /**
-     * POST /api/solicitudes
-     * Crear nueva solicitud de transporte con orquestación completa
-     * RF#1 del documento de diseño - Endpoint principal del sistema
-     * 
-     * @param solicitudDTO datos de la solicitud (contenedor + cliente)
-     * @return solicitud creada (201) o error (400)
-     */
+    @Operation(summary = "Crear nueva solicitud de transporte (RF#1)", 
+               description = "Endpoint principal del sistema que orquesta la creación completa de una solicitud de transporte incluyendo cliente, contenedor y ruta")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "201", description = "Solicitud creada exitosamente",
+                     content = @Content(mediaType = "application/json",
+                     schema = @Schema(implementation = SolicitudDTO.class))),
+        @ApiResponse(responseCode = "400", description = "Datos de entrada inválidos o cliente no encontrado",
+                     content = @Content)
+    })
     @PostMapping
     public ResponseEntity<SolicitudDTO> crearSolicitud(@Valid @RequestBody SolicitudCreateDTO solicitudDTO) {
         try {
@@ -63,6 +87,17 @@ public class SolicitudController {
         }
     }
 
+    @Operation(summary = "Actualizar una solicitud existente", 
+               description = "Modifica los datos de una solicitud registrada en el sistema")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Solicitud actualizada exitosamente",
+                     content = @Content(mediaType = "application/json",
+                     schema = @Schema(implementation = SolicitudDTO.class))),
+        @ApiResponse(responseCode = "404", description = "Solicitud no encontrada",
+                     content = @Content),
+        @ApiResponse(responseCode = "400", description = "Datos de entrada inválidos",
+                     content = @Content)
+    })
     @PutMapping("/{id}")
     public ResponseEntity<SolicitudDTO> actualizarSolicitud(@PathVariable Long id, @Valid @RequestBody SolicitudUpdateDTO solicitud) {
         SolicitudDTO solicitudActualizada = solicitudService.actualizarSolicitud(id, solicitud);
@@ -73,21 +108,29 @@ public class SolicitudController {
         }
     }
 
+    @Operation(summary = "Eliminar una solicitud", 
+               description = "Elimina una solicitud del sistema de forma permanente")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "204", description = "Solicitud eliminada exitosamente",
+                     content = @Content),
+        @ApiResponse(responseCode = "404", description = "Solicitud no encontrada",
+                     content = @Content)
+    })
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminarSolicitud(@PathVariable Long id) {
         solicitudService.eliminarSolicitud(id);
         return ResponseEntity.noContent().build();
     }
     
-    /**
-     * GET /api/solicitudes/{id}/estado
-     * RF#2: Consultar estado completo del transporte
-     * Permite al cliente consultar el estado detallado de su solicitud,
-     * incluyendo ubicación del contenedor, progreso y ETA
-     * 
-     * @param id ID de la solicitud
-     * @return SolicitudEstadoDTO con información completa (200) o Not Found (404)
-     */
+    @Operation(summary = "Consultar estado completo del transporte (RF#2)", 
+               description = "Permite al cliente consultar el estado detallado de su solicitud, incluyendo ubicación del contenedor, progreso de tramos y tiempo estimado de llegada")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Estado de la solicitud devuelto exitosamente",
+                     content = @Content(mediaType = "application/json",
+                     schema = @Schema(implementation = SolicitudEstadoDTO.class))),
+        @ApiResponse(responseCode = "404", description = "Solicitud no encontrada",
+                     content = @Content)
+    })
     @GetMapping("/{id}/estado")
     public ResponseEntity<SolicitudEstadoDTO> consultarEstadoSolicitud(@PathVariable Long id) {
         return solicitudService.consultarEstadoSolicitud(id)
@@ -95,15 +138,15 @@ public class SolicitudController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
     
-    /**
-     * GET /api/solicitudes/{solicitudId}/rutas/tentativas
-     * RF#3: Consultar rutas tentativas con cálculos de costo, tiempo y distancia
-     * Permite al operador evaluar diferentes opciones de ruta antes de asignar una definitiva
-     * Por ahora retorna una ruta directa simple, en el futuro podría ofrecer múltiples opciones
-     * 
-     * @param solicitudId ID de la solicitud
-     * @return Lista de rutas tentativas con cálculos (200) o Not Found (404)
-     */
+    @Operation(summary = "Consultar rutas tentativas (RF#3)", 
+               description = "Calcula y devuelve opciones de rutas posibles con estimaciones de costo, tiempo y distancia para evaluar antes de la asignación definitiva")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Rutas tentativas calculadas exitosamente",
+                     content = @Content(mediaType = "application/json",
+                     schema = @Schema(implementation = RutaTentativaDTO.class))),
+        @ApiResponse(responseCode = "404", description = "Solicitud no encontrada o sin ruta asociada",
+                     content = @Content)
+    })
     @GetMapping("/{solicitudId}/rutas/tentativas")
     public ResponseEntity<List<RutaTentativaDTO>> consultarRutasTentativas(@PathVariable Long solicitudId) {
         try {
@@ -115,16 +158,17 @@ public class SolicitudController {
         }
     }
     
-    /**
-     * POST /api/solicitudes/{solicitudId}/asignar-ruta
-    /**
-     * Permite al operador seleccionar y confirmar una ruta tentativa como definitiva
-     * Crea la ruta con sus tramos y cambia el estado de la solicitud a PROGRAMADA
-     * 
-     * @param solicitudId ID de la solicitud
-     * @param rutaDTO DTO con la información de la ruta y sus tramos
-     * @return Ruta creada (201) o Not Found (404)
-     */
+    @Operation(summary = "Asignar ruta definitiva a solicitud (RF#6)", 
+               description = "Confirma una ruta tentativa como definitiva, crea los tramos de transporte y cambia el estado de la solicitud a PROGRAMADA")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "201", description = "Ruta asignada exitosamente",
+                     content = @Content(mediaType = "application/json",
+                     schema = @Schema(implementation = RutaDTO.class))),
+        @ApiResponse(responseCode = "404", description = "Solicitud no encontrada",
+                     content = @Content),
+        @ApiResponse(responseCode = "400", description = "Datos de ruta inválidos",
+                     content = @Content)
+    })
     @PostMapping("/{solicitudId}/asignar-ruta")
     public ResponseEntity<RutaDTO> asignarRuta(@PathVariable Long solicitudId, @Valid @RequestBody RutaCreateDTO rutaDTO) {
         try {
@@ -136,15 +180,19 @@ public class SolicitudController {
         }
     }
     
-    /**
-     * RF#9: PATCH /api/solicitudes/{id}/finalizar
-     * Finaliza una solicitud calculando el costo total y tiempo real
-     * Solo se puede finalizar si todos los tramos están FINALIZADOS
-     * 
-     * @param id ID de la solicitud a finalizar
-     * @param finalizacionDTO DTO opcional con observaciones finales
-     * @return Solicitud actualizada (200) o error (404/400)
-     */
+    @Operation(summary = "Finalizar solicitud (RF#9)", 
+               description = "Finaliza una solicitud calculando el costo total y tiempo real. Solo se puede finalizar si todos los tramos están FINALIZADOS")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Solicitud finalizada exitosamente",
+                     content = @Content(mediaType = "application/json",
+                     schema = @Schema(implementation = SolicitudDTO.class))),
+        @ApiResponse(responseCode = "404", description = "Solicitud no encontrada",
+                     content = @Content),
+        @ApiResponse(responseCode = "400", description = "Estado incorrecto o tramos pendientes de finalizar",
+                     content = @Content),
+        @ApiResponse(responseCode = "500", description = "Error interno del servidor",
+                     content = @Content)
+    })
     @PatchMapping("/{id}/finalizar")
     public ResponseEntity<SolicitudDTO> finalizarSolicitud(
             @PathVariable Long id,
