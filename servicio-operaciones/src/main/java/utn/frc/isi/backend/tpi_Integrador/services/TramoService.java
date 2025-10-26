@@ -20,6 +20,7 @@ import utn.frc.isi.backend.tpi_Integrador.repositories.SolicitudRepository;
 import utn.frc.isi.backend.tpi_Integrador.repositories.TramoRepository;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -61,6 +62,29 @@ public class TramoService {
     public Optional<TramoDTO> obtenerPorId(Long id) {
         return tramoRepository.findById(id)
                 .map(tramoMapper::toDTO);
+    }
+
+    /**
+     * RF#7: Obtiene los tramos asignados a un transportista (identificado por camionId)
+     * que no están finalizados. Permite al transportista ver sus tramos pendientes.
+     * 
+     * @param camionId ID del camión asignado al transportista
+     * @return Lista de TramoDTO con los tramos asignados que no están finalizados
+     */
+    public List<TramoDTO> obtenerTramosAsignadosTransportista(Long camionId) {
+        // Define los estados que NO queremos (solo los finalizados)
+        List<String> estadosExcluidos = Arrays.asList("FINALIZADO");
+        
+        // Busca tramos asignados al camión que no estén finalizados
+        List<Tramo> tramos = tramoRepository.findByCamionReference_CamionIdAndEstadoNotIn(
+            camionId, 
+            estadosExcluidos
+        );
+        
+        // Mapea las entidades a DTOs usando el mapper
+        return tramos.stream()
+                .map(tramoMapper::toDTO)
+                .collect(Collectors.toList());
     }
 
     public Tramo crearTramo(Tramo tramo) {

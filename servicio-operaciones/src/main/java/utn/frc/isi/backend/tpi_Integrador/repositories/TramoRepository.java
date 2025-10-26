@@ -26,4 +26,14 @@ public interface TramoRepository extends JpaRepository<Tramo, Long> {
      * Busca todos los tramos de una ruta por su ID
      */
     List<Tramo> findByRutaId(Long rutaId);
+    
+    /**
+     * RF#7: Busca tramos asignados a un camión específico que NO estén finalizados
+     * Permite al transportista ver sus tramos pendientes de ejecución
+     * 
+     * @param camionId ID del camión asignado al transportista
+     * @param estados Lista de estados a excluir (típicamente "FINALIZADO")
+     * @return Lista de tramos asignados al camión que no están en los estados excluidos
+     */
+    List<Tramo> findByCamionReference_CamionIdAndEstadoNotIn(Long camionId, List<String> estados);
 }

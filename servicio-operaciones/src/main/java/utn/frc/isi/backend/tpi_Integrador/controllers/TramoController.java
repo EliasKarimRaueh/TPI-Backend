@@ -95,4 +95,19 @@ public class TramoController {
             return ResponseEntity.badRequest().build();
         }
     }
+    
+    /**
+     * GET /api/tramos/transportistas/{camionId}/tramos
+     * RF#7: Obtener tramos asignados a un transportista que no están finalizados
+     * Permite al transportista ver sus tramos pendientes de ejecución
+     * 
+     * @param camionId ID del camión asignado al transportista
+     * @return Lista de TramoDTO con los tramos asignados (200 OK)
+     */
+    @GetMapping("/transportistas/{camionId}/tramos")
+    public ResponseEntity<List<TramoDTO>> obtenerTramosParaTransportista(@PathVariable Long camionId) {
+        List<TramoDTO> tramosAsignados = tramoService.obtenerTramosAsignadosTransportista(camionId);
+        // Devuelve 200 OK con lista vacía si no hay tramos, o con los tramos encontrados
+        return ResponseEntity.ok(tramosAsignados);
+    }
 }
