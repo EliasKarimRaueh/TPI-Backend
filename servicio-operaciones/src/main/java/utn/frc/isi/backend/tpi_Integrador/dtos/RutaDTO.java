@@ -4,8 +4,11 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
+import java.util.List;
+
 /**
- * DTO para mostrar información de una ruta
+ * DTO para mostrar información completa de una ruta
+ * Incluye la lista de tramos que componen la ruta
  */
 @Data
 @NoArgsConstructor
@@ -14,11 +17,17 @@ public class RutaDTO {
     
     private Long id; // ID de la ruta
     
-    private String origen; // Punto de origen
+    private Long solicitudId; // ID de la solicitud asociada
     
-    private String destino; // Punto de destino
+    private int cantidadTramos; // Cantidad de tramos en la ruta
     
-    private double distanciaKm; // Distancia total en kilómetros
+    private int cantidadDepositos; // Cantidad de depósitos intermedios
     
-    private int tiempoEstimadoHoras; // Tiempo estimado en horas
+    private double distanciaTotal; // Distancia total en kilómetros
+    
+    private double tiempoEstimadoTotal; // Tiempo estimado total en horas
+    
+    private double costoEstimado; // Costo estimado total
+    
+    private List<TramoDTO> tramos; // Lista de tramos que componen la ruta
 }

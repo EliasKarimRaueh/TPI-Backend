@@ -177,10 +177,10 @@ public class RutaService {
      * 
      * @param solicitudId ID de la solicitud
      * @param dto DTO con la información de la ruta y sus tramos
-     * @return Ruta creada y asignada
+     * @return RutaDTO de la ruta creada y asignada
      */
     @Transactional
-    public Ruta asignarRutaASolicitud(Long solicitudId, RutaCreateDTO dto) {
+    public RutaDTO asignarRutaASolicitud(Long solicitudId, RutaCreateDTO dto) {
         // 1. Buscar la solicitud
         Solicitud solicitud = solicitudRepository.findById(solicitudId)
                 .orElseThrow(() -> new RuntimeException("Solicitud no encontrada con ID: " + solicitudId));
@@ -269,7 +269,8 @@ public class RutaService {
         solicitud.setEstado("PROGRAMADA");
         solicitudRepository.save(solicitud);
         
-        return rutaGuardada;
+        // 6. Retornar la ruta como DTO
+        return rutaMapper.toDTO(rutaGuardada);
     }
     
     // Aquí se podrían agregar más métodos de negocio en el futuro,

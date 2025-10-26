@@ -9,6 +9,7 @@ import utn.frc.isi.backend.tpi_Integrador.dtos.SolicitudDTO;
 import utn.frc.isi.backend.tpi_Integrador.dtos.SolicitudEstadoDTO;
 import utn.frc.isi.backend.tpi_Integrador.dtos.SolicitudUpdateDTO;
 import utn.frc.isi.backend.tpi_Integrador.mappers.SolicitudMapper;
+import utn.frc.isi.backend.tpi_Integrador.mappers.RutaMapper;
 import utn.frc.isi.backend.tpi_Integrador.models.Cliente;
 import utn.frc.isi.backend.tpi_Integrador.models.Contenedor;
 import utn.frc.isi.backend.tpi_Integrador.models.Solicitud;
@@ -35,6 +36,7 @@ public class SolicitudService {
     private final ContenedorRepository contenedorRepository;
     private final RutaRepository rutaRepository;
     private final SolicitudMapper solicitudMapper;
+    private final RutaMapper rutaMapper;
 
     // Inyección de dependencias a través del constructor (práctica recomendada)
     public SolicitudService(SolicitudRepository solicitudRepository, 
@@ -43,7 +45,8 @@ public class SolicitudService {
                           ClienteRepository clienteRepository,
                           ContenedorRepository contenedorRepository,
                           RutaRepository rutaRepository,
-                          SolicitudMapper solicitudMapper) {
+                          SolicitudMapper solicitudMapper,
+                          RutaMapper rutaMapper) {
         this.solicitudRepository = solicitudRepository;
         this.clienteService = clienteService;
         this.contenedorService = contenedorService;
@@ -51,6 +54,7 @@ public class SolicitudService {
         this.contenedorRepository = contenedorRepository;
         this.rutaRepository = rutaRepository;
         this.solicitudMapper = solicitudMapper;
+        this.rutaMapper = rutaMapper;
     }
 
     /**
@@ -205,13 +209,8 @@ public class SolicitudService {
             
             // Información de la ruta
             if (solicitud.getRuta() != null) {
-                RutaDTO rutaDTO = new RutaDTO();
-                rutaDTO.setId(solicitud.getRuta().getId());
-                rutaDTO.setOrigen(solicitud.getRuta().getOrigen());
-                rutaDTO.setDestino(solicitud.getRuta().getDestino());
-                rutaDTO.setDistanciaKm(solicitud.getRuta().getDistanciaKm());
-                rutaDTO.setTiempoEstimadoHoras(solicitud.getRuta().getTiempoEstimadoHoras());
-                
+                RutaDTO rutaDTO = rutaMapper.toDTO(solicitud.getRuta());
+                rutaDTO.setSolicitudId(solicitud.getId());
                 estadoDTO.setRutaActual(rutaDTO);
             }
             

@@ -4,7 +4,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import utn.frc.isi.backend.tpi_Integrador.dtos.AsignacionCamionDTO;
-import utn.frc.isi.backend.tpi_Integrador.models.Tramo;
+import utn.frc.isi.backend.tpi_Integrador.dtos.TramoDTO;
 import utn.frc.isi.backend.tpi_Integrador.services.TramoService;
 
 import java.util.List;
@@ -20,40 +20,18 @@ public class TramoController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Tramo>> obtenerTodos() {
-        List<Tramo> tramos = tramoService.obtenerTodos();
+    public ResponseEntity<List<TramoDTO>> obtenerTodos() {
+        List<TramoDTO> tramos = tramoService.obtenerTodos();
         return ResponseEntity.ok(tramos);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Tramo> obtenerPorId(@PathVariable Long id) {
+    public ResponseEntity<TramoDTO> obtenerPorId(@PathVariable Long id) {
         return tramoService.obtenerPorId(id)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    @PostMapping
-    public ResponseEntity<Tramo> crearTramo(@RequestBody Tramo tramo) {
-        Tramo nuevoTramo = tramoService.crearTramo(tramo);
-        return ResponseEntity.status(201).body(nuevoTramo);
-    }
-
-    @PutMapping("/{id}")
-    public ResponseEntity<Tramo> actualizarTramo(@PathVariable Long id, @RequestBody Tramo tramo) {
-        Tramo tramoActualizado = tramoService.actualizarTramo(id, tramo);
-        if (tramoActualizado != null) {
-            return ResponseEntity.ok(tramoActualizado);
-        } else {
-            return ResponseEntity.notFound().build();
-        }
-    }
-
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> eliminarTramo(@PathVariable Long id) {
-        tramoService.eliminarTramo(id);
-        return ResponseEntity.noContent().build();
-    }
-    
     /**
      * POST /api/tramos/{id}/asignar-camion
      * RF#6: Asignar un camión a un tramo específico
@@ -62,12 +40,12 @@ public class TramoController {
      * 
      * @param id ID del tramo
      * @param asignacionDTO DTO con el ID del camión a asignar
-     * @return Tramo actualizado (200) o error (400, 404)
+     * @return TramoDTO actualizado (200) o error (400, 404)
      */
     @PostMapping("/{id}/asignar-camion")
-    public ResponseEntity<Tramo> asignarCamion(@PathVariable Long id, @Valid @RequestBody AsignacionCamionDTO asignacionDTO) {
+    public ResponseEntity<TramoDTO> asignarCamion(@PathVariable Long id, @Valid @RequestBody AsignacionCamionDTO asignacionDTO) {
         try {
-            Tramo tramoActualizado = tramoService.asignarCamion(id, asignacionDTO);
+            TramoDTO tramoActualizado = tramoService.asignarCamion(id, asignacionDTO);
             return ResponseEntity.ok(tramoActualizado);
         } catch (RuntimeException e) {
             // Retornar 400 Bad Request con el mensaje de error
@@ -82,12 +60,12 @@ public class TramoController {
      * Actualiza el estado del tramo a "INICIADO" y el contenedor a "EN_VIAJE"
      * 
      * @param id ID del tramo a iniciar
-     * @return Tramo actualizado (200) o error (400, 404)
+     * @return TramoDTO actualizado (200) o error (400, 404)
      */
     @PostMapping("/{id}/iniciar")
-    public ResponseEntity<Tramo> iniciarTramo(@PathVariable Long id) {
+    public ResponseEntity<TramoDTO> iniciarTramo(@PathVariable Long id) {
         try {
-            Tramo tramoIniciado = tramoService.iniciarTramo(id);
+            TramoDTO tramoIniciado = tramoService.iniciarTramo(id);
             return ResponseEntity.ok(tramoIniciado);
         } catch (RuntimeException e) {
             // Retornar 400 Bad Request en caso de validación fallida
@@ -99,17 +77,18 @@ public class TramoController {
      * POST /api/tramos/{id}/finalizar
      * RF#8: Finalizar un tramo de transporte
      * El transportista marca el fin del viaje
+     * Calcula el costo real del tramo usando datos de servicio-flota
      * Actualiza el estado del tramo a "FINALIZADO"
      * Si es el último tramo, marca contenedor como "ENTREGADO" y solicitud como "ENTREGADA"
      * Libera el camión para nuevas asignaciones
      * 
      * @param id ID del tramo a finalizar
-     * @return Tramo actualizado (200) o error (400, 404)
+     * @return TramoDTO actualizado con costo real (200) o error (400, 404)
      */
     @PostMapping("/{id}/finalizar")
-    public ResponseEntity<Tramo> finalizarTramo(@PathVariable Long id) {
+    public ResponseEntity<TramoDTO> finalizarTramo(@PathVariable Long id) {
         try {
-            Tramo tramoFinalizado = tramoService.finalizarTramo(id);
+            TramoDTO tramoFinalizado = tramoService.finalizarTramo(id);
             return ResponseEntity.ok(tramoFinalizado);
         } catch (RuntimeException e) {
             // Retornar 400 Bad Request en caso de validación fallida

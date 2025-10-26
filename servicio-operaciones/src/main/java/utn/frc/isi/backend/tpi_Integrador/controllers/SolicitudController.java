@@ -4,12 +4,12 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import utn.frc.isi.backend.tpi_Integrador.dtos.RutaCreateDTO;
+import utn.frc.isi.backend.tpi_Integrador.dtos.RutaDTO;
 import utn.frc.isi.backend.tpi_Integrador.dtos.RutaTentativaDTO;
 import utn.frc.isi.backend.tpi_Integrador.dtos.SolicitudCreateDTO;
 import utn.frc.isi.backend.tpi_Integrador.dtos.SolicitudDTO;
 import utn.frc.isi.backend.tpi_Integrador.dtos.SolicitudEstadoDTO;
 import utn.frc.isi.backend.tpi_Integrador.dtos.SolicitudUpdateDTO;
-import utn.frc.isi.backend.tpi_Integrador.models.Ruta;
 import utn.frc.isi.backend.tpi_Integrador.services.RutaService;
 import utn.frc.isi.backend.tpi_Integrador.services.SolicitudService;
 
@@ -116,7 +116,7 @@ public class SolicitudController {
     
     /**
      * POST /api/solicitudes/{solicitudId}/asignar-ruta
-     * RF#4: Asignar una ruta definitiva a una solicitud
+    /**
      * Permite al operador seleccionar y confirmar una ruta tentativa como definitiva
      * Crea la ruta con sus tramos y cambia el estado de la solicitud a PROGRAMADA
      * 
@@ -125,9 +125,9 @@ public class SolicitudController {
      * @return Ruta creada (201) o Not Found (404)
      */
     @PostMapping("/{solicitudId}/asignar-ruta")
-    public ResponseEntity<Ruta> asignarRuta(@PathVariable Long solicitudId, @Valid @RequestBody RutaCreateDTO rutaDTO) {
+    public ResponseEntity<RutaDTO> asignarRuta(@PathVariable Long solicitudId, @Valid @RequestBody RutaCreateDTO rutaDTO) {
         try {
-            Ruta rutaAsignada = rutaService.asignarRutaASolicitud(solicitudId, rutaDTO);
+            RutaDTO rutaAsignada = rutaService.asignarRutaASolicitud(solicitudId, rutaDTO);
             return ResponseEntity.status(201).body(rutaAsignada);
         } catch (RuntimeException e) {
             // Si la solicitud no existe

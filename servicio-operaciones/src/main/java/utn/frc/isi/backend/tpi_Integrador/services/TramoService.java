@@ -6,8 +6,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import utn.frc.isi.backend.tpi_Integrador.clients.FlotaServiceClient;
 import utn.frc.isi.backend.tpi_Integrador.dtos.AsignacionCamionDTO;
+import utn.frc.isi.backend.tpi_Integrador.dtos.TramoDTO;
 import utn.frc.isi.backend.tpi_Integrador.dtos.flota.CamionDTO;
 import utn.frc.isi.backend.tpi_Integrador.dtos.flota.TarifaDTO;
+import utn.frc.isi.backend.tpi_Integrador.mappers.TramoMapper;
 import utn.frc.isi.backend.tpi_Integrador.models.CamionReference;
 import utn.frc.isi.backend.tpi_Integrador.models.Contenedor;
 import utn.frc.isi.backend.tpi_Integrador.models.Solicitud;
@@ -20,6 +22,7 @@ import utn.frc.isi.backend.tpi_Integrador.repositories.TramoRepository;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service // Marca esta clase como un componente de servicio de Spring
 public class TramoService {
@@ -31,26 +34,33 @@ public class TramoService {
     private final SolicitudRepository solicitudRepository;
     private final ContenedorRepository contenedorRepository;
     private final FlotaServiceClient flotaServiceClient;
+    private final TramoMapper tramoMapper;
 
     // Inyección de dependencias a través del constructor (práctica recomendada)
     public TramoService(TramoRepository tramoRepository, 
                         CamionReferenceRepository camionReferenceRepository, 
                         SolicitudRepository solicitudRepository, 
                         ContenedorRepository contenedorRepository,
-                        FlotaServiceClient flotaServiceClient) {
+                        FlotaServiceClient flotaServiceClient,
+                        TramoMapper tramoMapper) {
         this.tramoRepository = tramoRepository;
         this.camionReferenceRepository = camionReferenceRepository;
         this.solicitudRepository = solicitudRepository;
         this.contenedorRepository = contenedorRepository;
         this.flotaServiceClient = flotaServiceClient;
+        this.tramoMapper = tramoMapper;
     }
 
-    public List<Tramo> obtenerTodos() {
-        return tramoRepository.findAll();
+    public List<TramoDTO> obtenerTodos() {
+        return tramoRepository.findAll()
+                .stream()
+                .map(tramoMapper::toDTO)
+                .collect(Collectors.toList());
     }
 
-    public Optional<Tramo> obtenerPorId(Long id) {
-        return tramoRepository.findById(id);
+    public Optional<TramoDTO> obtenerPorId(Long id) {
+        return tramoRepository.findById(id)
+                .map(tramoMapper::toDTO);
     }
 
     public Tramo crearTramo(Tramo tramo) {
@@ -80,10 +90,10 @@ public class TramoService {
      * 
      * @param tramoId ID del tramo
      * @param dto DTO con el ID del camión a asignar
-     * @return Tramo actualizado con el camión asignado
+     * @return TramoDTO actualizado con el camión asignado
      */
     @Transactional
-    public Tramo asignarCamion(Long tramoId, AsignacionCamionDTO dto) {
+    public TramoDTO asignarCamion(Long tramoId, AsignacionCamionDTO dto) {
         // PASO 1: Buscar el tramo
         Tramo tramo = tramoRepository.findById(tramoId)
                 .orElseThrow(() -> new RuntimeException("Tramo no encontrado con ID: " + tramoId));
@@ -149,8 +159,9 @@ public class TramoService {
         camionRef.setDisponible(false);
         camionReferenceRepository.save(camionRef);
         
-        // PASO 6: Guardar y retornar el tramo actualizado
-        return tramoRepository.save(tramo);
+        // PASO 6: Guardar y retornar el tramo actualizado como DTO
+        Tramo tramoGuardado = tramoRepository.save(tramo);
+        return tramoMapper.toDTO(tramoGuardado);
     }
     
     /**
@@ -159,10 +170,10 @@ public class TramoService {
      * Actualiza el estado del tramo y del contenedor.
      * 
      * @param tramoId ID del tramo a iniciar
-     * @return Tramo actualizado
+     * @return TramoDTO actualizado
      */
     @Transactional
-    public Tramo iniciarTramo(Long tramoId) {
+    public TramoDTO iniciarTramo(Long tramoId) {
         // 1. Buscar el tramo
         Tramo tramo = tramoRepository.findById(tramoId)
                 .orElseThrow(() -> new RuntimeException("Tramo no encontrado con ID: " + tramoId));
@@ -191,8 +202,9 @@ public class TramoService {
             solicitudRepository.save(solicitud);
         }
         
-        // 7. Guardar y retornar el tramo actualizado
-        return tramoRepository.save(tramo);
+        // 7. Guardar y retornar el tramo actualizado como DTO
+        Tramo tramoGuardado = tramoRepository.save(tramo);
+        return tramoMapper.toDTO(tramoGuardado);
     }
     
     /**
@@ -204,10 +216,10 @@ public class TramoService {
      * Actualiza el estado del tramo y, si es el último, del contenedor y solicitud.
      * 
      * @param tramoId ID del tramo a finalizar
-     * @return Tramo actualizado con costo real calculado
+     * @return TramoDTO actualizado con costo real calculado
      */
     @Transactional
-    public Tramo finalizarTramo(Long tramoId) {
+    public TramoDTO finalizarTramo(Long tramoId) {
         // 1. Buscar el tramo
         Tramo tramo = tramoRepository.findById(tramoId)
                 .orElseThrow(() -> new RuntimeException("Tramo no encontrado con ID: " + tramoId));
@@ -291,8 +303,9 @@ public class TramoService {
             logger.debug("Camión {} liberado y marcado como disponible", camion2.getDominio());
         }
         
-        // 9. Guardar y retornar el tramo actualizado
-        return tramoRepository.save(tramo);
+        // 9. Guardar y retornar el tramo actualizado como DTO
+        Tramo tramoGuardado = tramoRepository.save(tramo);
+        return tramoMapper.toDTO(tramoGuardado);
     }
     
     // Aquí se podrían agregar más métodos de negocio en el futuro,

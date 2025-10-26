@@ -21,4 +21,9 @@ public interface TramoRepository extends JpaRepository<Tramo, Long> {
      * Útil para verificar el progreso de una ruta completa
      */
     List<Tramo> findByRutaOrderByOrdenAsc(Ruta ruta);
+    
+    /**
+     * Busca todos los tramos de una ruta por su ID
+     */
+    List<Tramo> findByRutaId(Long rutaId);
 }
